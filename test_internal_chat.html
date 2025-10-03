@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Internal Chat - Action Cable</title>
+    <script src="https://unpkg.com/@rails/actioncable@7.0.0/app/assets/javascripts/actioncable.js"></script>
+</head>
+<body>
+    <h1>Teste do Internal Chat</h1>
+    <div id="messages"></div>
+    <input type="text" id="messageInput" placeholder="Digite sua mensagem...">
+    <button onclick="sendMessage()">Enviar</button>
+    
+    <script>
+        // Conecta ao Action Cable
+        const cable = ActionCable.createConsumer('ws://localhost:3000/cable');
+        
+        // Subscribe ao canal
+        const subscription = cable.subscriptions.create('InternalChatChannel', {
+            connected() {
+                console.log('✅ Conectado ao InternalChatChannel');
+                addMessage('Sistema: Conectado ao chat!');
+            },
+            
+            disconnected() {
+                console.log('❌ Desconectado do InternalChatChannel');
+                addMessage('Sistema: Desconectado do chat!');
+            },
+            
+            received(data) {
+                console.log('📨 Mensagem recebida:', data);
+                addMessage(`${data.message.sender_name}: ${data.message.content}`);
+            }
+        });
+        
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (!content) return;
+            
+            console.log('📤 Enviando mensagem:', content);
+            
+            subscription.send({
+                message: {
+                    content: content,
+                    chat_type: 'general',
+                    chat_id: 'general'
+                }
+            });
+            
+            input.value = '';
+        }
+        
+        function addMessage(text) {
+            const messages = document.getElementById('messages');
+            const div = document.createElement('div');
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+            messages.appendChild(div);
+            messages.scrollTop = messages.scrollHeight;
+        }
+        
+        // Enter para enviar
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+    
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        #messages { border: 1px solid #ccc; height: 300px; overflow-y: auto; padding: 10px; margin: 10px 0; }
+        input { width: 300px; padding: 8px; margin-right: 10px; }
+        button { padding: 8px 16px; }
+    </style>
+</body>
+</html>

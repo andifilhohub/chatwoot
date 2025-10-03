@@ -1,0 +1,327 @@
+<script>
+import { useVuelidate } from '@vuelidate/core';
+import { required, email } from '@vuelidate/validators';
+import { useAlert } from 'dashboard/composables';
+import globalConfigMixin from 'shared/mixins/globalConfigMixin';
+import SubmitButton from '../../components/Button/SubmitButton.vue';
+import { mapGetters } from 'vuex';
+import { parseBoolean } from '@chatwoot/utils';
+import GoogleOAuthButton from '../../components/GoogleOauth/Button.vue';
+import FormInput from '../../components/Form/Input.vue';
+import { login } from '../../api/auth';
+import Spinner from 'shared/components/Spinner.vue';
+const ERROR_MESSAGES = {
+  'no-account-found': 'LOGIN.OAUTH.NO_ACCOUNT_FOUND',
+  'business-account-only': 'LOGIN.OAUTH.BUSINESS_ACCOUNTS_ONLY',
+};
+
+export default {
+  components: {
+    FormInput,
+    GoogleOAuthButton,
+    Spinner,
+    SubmitButton,
+  },
+  mixins: [globalConfigMixin],
+  props: {
+    ssoAuthToken: { type: String, default: '' },
+    ssoAccountId: { type: String, default: '' },
+    ssoConversationId: { type: String, default: '' },
+    email: { type: String, default: '' },
+    authError: { type: String, default: '' },
+  },
+  setup() {
+    return { v$: useVuelidate() };
+  },
+  data() {
+    return {
+      // We need to initialize the component with any
+      // properties that will be used in it
+      credentials: {
+        email: '',
+        password: '',
+      },
+      loginApi: {
+        message: '',
+        showLoading: false,
+        hasErrored: false,
+      },
+      error: '',
+    };
+  },
+  validations: {
+    credentials: {
+      password: {
+        required,
+      },
+      email: {
+        required,
+        email,
+      },
+    },
+  },
+  computed: {
+    ...mapGetters({ globalConfig: 'globalConfig/get' }),
+    showGoogleOAuth() {
+      return Boolean(window.chatwootConfig.googleOAuthClientId);
+    },
+    showSignupLink() {
+      return parseBoolean(window.chatwootConfig.signupEnabled);
+    },
+  },
+  created() {
+    if (this.ssoAuthToken) {
+      this.submitLogin();
+    }
+    if (this.authError) {
+      const message = ERROR_MESSAGES[this.authError] ?? 'LOGIN.API.UNAUTH';
+      useAlert(this.$t(message));
+      // wait for idle state
+      this.requestIdleCallbackPolyfill(() => {
+        // Remove the error query param from the url
+        const { query } = this.$route;
+        this.$router.replace({ query: { ...query, error: undefined } });
+      });
+    }
+  },
+  methods: {
+    // TODO: Remove this when Safari gets wider support
+    // Ref: https://caniuse.com/requestidlecallback
+    //
+    requestIdleCallbackPolyfill(callback) {
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(callback);
+      } else {
+        // Fallback for safari
+        // Using a delay of 0 allows the callback to be executed asynchronously
+        // in the next available event loop iteration, similar to requestIdleCallback
+        setTimeout(callback, 0);
+      }
+    },
+    showAlertMessage(message) {
+      // Reset loading, current selected agent
+      this.loginApi.showLoading = false;
+      this.loginApi.message = message;
+      useAlert(this.loginApi.message);
+    },
+    submitLogin() {
+      this.loginApi.hasErrored = false;
+      this.loginApi.showLoading = true;
+
+      const credentials = {
+        email: this.email
+          ? decodeURIComponent(this.email)
+          : this.credentials.email,
+        password: this.credentials.password,
+        sso_auth_token: this.ssoAuthToken,
+        ssoAccountId: this.ssoAccountId,
+        ssoConversationId: this.ssoConversationId,
+      };
+
+      login(credentials)
+        .then(() => {
+          this.showAlertMessage(this.$t('LOGIN.API.SUCCESS_MESSAGE'));
+        })
+        .catch(response => {
+          // Reset URL Params if the authentication is invalid
+          if (this.email) {
+            window.location = '/app/login';
+          }
+          this.loginApi.hasErrored = true;
+          this.showAlertMessage(
+            response?.message || this.$t('LOGIN.API.UNAUTH')
+          );
+        });
+    },
+    submitFormLogin() {
+      if (this.v$.credentials.email.$invalid && !this.email) {
+        this.showAlertMessage(this.$t('LOGIN.EMAIL.ERROR'));
+        return;
+      }
+
+      this.submitLogin();
+    },
+  },
+};
+</script>
+
+<template>
+  <main class="flex min-h-screen bg-woot-25 dark:bg-slate-900">
+    <!-- Container para o login -->
+    <div
+      class="flex flex-col justify-center w-full max-w-lg text-center p-8 full-vh"
+    >
+      <!-- Logo -->
+      <img
+        :src="globalConfig.logo"
+        :alt="globalConfig.installationName"
+        class="block w-auto h-8 mx-auto dark:hidden"
+      />
+      <img
+        v-if="globalConfig.logo"
+        :src="globalConfig.logo"
+        :alt="globalConfig.installationName"
+        class="hidden w-auto h-8 mx-auto dark:block"
+      />
+      <!-- Título -->
+      <h2 class="mt-6 text-3xl font-medium text-slate-900 dark:text-woot-50">
+        {{
+          useInstallationName($t('LOGIN.TITLE'), globalConfig.installationName)
+        }}
+      </h2>
+      <!-- Formulário de login -->
+      <section
+        class="mt-8 bg-white shadow w-full dark:bg-slate-800 p-11 sm:shadow-lg sm:rounded-lg"
+        :class="{
+          'mb-8 mt-15': !showGoogleOAuth,
+          'animate-wiggle': loginApi.hasErrored,
+        }"
+      >
+        <div v-if="!email">
+          <GoogleOAuthButton v-if="showGoogleOAuth" />
+          <form class="space-y-5" @submit.prevent="submitFormLogin">
+            <FormInput
+              v-model.trim="credentials.email"
+              name="email_address"
+              type="text"
+              data-testid="email_input"
+              :tabindex="1"
+              required
+              :label="$t('LOGIN.EMAIL.LABEL')"
+              :placeholder="$t('LOGIN.EMAIL.PLACEHOLDER')"
+              :has-error="v$.credentials.email.$error"
+              @input="v$.credentials.email.$touch"
+            />
+            <FormInput
+              v-model.trim="credentials.password"
+              type="password"
+              name="password"
+              data-testid="password_input"
+              required
+              :tabindex="2"
+              :label="$t('LOGIN.PASSWORD.LABEL')"
+              :placeholder="$t('LOGIN.PASSWORD.PLACEHOLDER')"
+              :has-error="v$.credentials.password.$error"
+              @input="v$.credentials.password.$touch"
+            >
+              <p v-if="!globalConfig.disableUserProfileUpdate">
+                <router-link
+                  to="auth/reset/password"
+                  class="text-sm text-link"
+                  tabindex="4"
+                >
+                  {{ $t('LOGIN.FORGOT_PASSWORD') }}
+                </router-link>
+              </p>
+            </FormInput>
+            <SubmitButton
+              :disabled="loginApi.showLoading"
+              :tabindex="3"
+              :button-text="$t('LOGIN.SUBMIT')"
+              :loading="loginApi.showLoading"
+            />
+          </form>
+        </div>
+        <div v-else class="flex items-center justify-center">
+          <Spinner color-scheme="primary" size="" />
+        </div>
+      </section>
+      <div id="contact">
+        <h3 class="mr-5 my-2">{{ $t('CONTACT.TITLE') }}</h3>
+        <!-- Adicione uma margem à direita para espaçamento -->
+        <div class="mr-5 flex flex-row justify-center items-center">
+          <a
+            href="https://wa.me/553496789165"
+            target="_blank"
+            without
+            rel="noopener noreferrer"
+          >
+            <img src="/whatsapp.png" alt="Whatsapp" class="icon-contact mx-2" />
+          </a>
+          <a
+            href="https://www.instagram.com/drben.farmabot/"
+            target="_blank"
+            without
+            rel="noopener noreferrer"
+          >
+            <img
+              src="/instagram.png"
+              alt="Instagram"
+              class="icon-contact mx-2"
+            />
+          </a>
+          <a
+            href="https://www.youtube.com/@drben-yv3gm"
+            target="_blank"
+            without
+            rel="noopener noreferrer"
+          >
+            <img src="/youtube.png" alt="YouTube" class="icon-contact mx-2" />
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Seção de Publicidade -->
+    <section
+      class="flex-1 bg-woot-50 dark:bg-slate-900 p-8 hidden md:block borda-esquerda no-margin-top full-vh"
+    >
+      <img
+        src="/brand-assets/ms-icon-144x144.png"
+        sizes="128x128"
+        alt="DrBen"
+        class="full-height mx-auto h-8 w-auto display-block block dark:block"
+      />
+    </section>
+  </main>
+</template>
+
+<style>
+html,
+body {
+  height: 100%; /* Garante que o html e o body ocupem 100% da altura da janela */
+  margin: 0; /* Remove margens padrão */
+}
+
+main {
+  display: flex; /* Permite layout em flex */
+  min-height: 100vh; /* Garante que main ocupe pelo menos 100% da altura da janela */
+}
+.display-block {
+  display: block;
+}
+
+.icon-contact {
+  width: 25px;
+  height: 25px;
+}
+.icon-insta {
+  margin-left: 15px;
+}
+.flex-1 {
+  flex: 1; /* Faz com que a seção de publicidade ocupe o espaço restante */
+}
+
+/* Alinhamento central no eixo Y */
+.flex-col {
+  height: 100%; /* Garante que o container ocupe toda a altura disponível */
+}
+
+.full-height {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.borda-esquerda {
+  border-left: 2px solid #30a46c; /* Substitua pela cor desejada */
+}
+
+.no-margin-top {
+  margin-top: 0; /* Remove o estilo inline */
+}
+
+.full-vh {
+  height: 100vh; /* Altura total da tela */
+}
+</style>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Attachments - Chat Interno</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input, textarea, button { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; border: none; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .response { margin-top: 20px; padding: 15px; border-radius: 4px; }
+        .success { background: #d4edda; border: 1px solid #c3e6cb; color: #155724; }
+        .error { background: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; }
+        .file-info { margin-top: 10px; padding: 10px; background: #f8f9fa; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Teste de Envio de Attachments - Chat Interno</h1>
+        
+        <form id="testForm">
+            <div class="form-group">
+                <label for="content">Conteúdo da Mensagem:</label>
+                <textarea id="content" rows="3" placeholder="Digite sua mensagem aqui..."></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="attachments">Anexos:</label>
+                <input type="file" id="attachments" multiple>
+                <div id="fileInfo" class="file-info" style="display: none;">
+                    <strong>Arquivos selecionados:</strong>
+                    <ul id="fileList"></ul>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="roomType">Tipo de Sala:</label>
+                <select id="roomType">
+                    <option value="general">General</option>
+                    <option value="direct" selected>Direct</option>
+                    <option value="team">Team</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="roomId">ID da Sala (para direct/team):</label>
+                <input type="text" id="roomId" placeholder="Deixe vazio para general" value="1">
+            </div>
+            
+            <button type="submit">Enviar Mensagem</button>
+        </form>
+        
+        <div style="margin-top: 20px;">
+            <h3>Teste de Carregamento de Mensagens</h3>
+            <button type="button" id="loadMessages">Carregar Mensagens</button>
+            <div id="messagesList" style="margin-top: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; max-height: 300px; overflow-y: auto;"></div>
+        </div>
+        
+        <div style="margin-top: 20px;">
+            <h3>Teste de ActionCable (Tempo Real)</h3>
+            <button type="button" id="testActionCable">Testar Conexão ActionCable</button>
+            <div id="actionCableStatus" style="margin-top: 10px; padding: 10px; border: 1px solid #ddd; border-radius: 4px;">
+                Status: <span id="connectionStatus">Desconectado</span>
+            </div>
+        </div>
+        
+        <div id="response" class="response" style="display: none;"></div>
+    </div>
+
+    <script>
+        const form = document.getElementById('testForm');
+        const fileInput = document.getElementById('attachments');
+        const fileInfo = document.getElementById('fileInfo');
+        const fileList = document.getElementById('fileList');
+        const response = document.getElementById('response');
+
+        // Mostrar informações dos arquivos selecionados
+        fileInput.addEventListener('change', function() {
+            const files = Array.from(this.files);
+            if (files.length > 0) {
+                fileList.innerHTML = '';
+                files.forEach(file => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `${file.name} (${formatFileSize(file.size)}) - ${file.type}`;
+                    fileList.appendChild(li);
+                });
+                fileInfo.style.display = 'block';
+            } else {
+                fileInfo.style.display = 'none';
+            }
+        });
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData();
+            const content = document.getElementById('content').value;
+            const roomType = document.getElementById('roomType').value;
+            const roomId = document.getElementById('roomId').value;
+            const files = Array.from(fileInput.files);
+
+            // Adicionar dados da mensagem
+            formData.append('message[room_type]', roomType);
+            if (roomId) {
+                formData.append('message[room_id]', roomId);
+            }
+            if (content) {
+                formData.append('message[content]', content);
+            }
+            formData.append('message[message_type]', files.length > 0 && !content ? 'attachment' : 'text');
+
+            // Adicionar arquivos
+            files.forEach(file => {
+                formData.append('message[attachments][]', file, file.name);
+            });
+
+            // Log do FormData
+            console.log('FormData contents:');
+            for (let [key, value] of formData.entries()) {
+                console.log(key, value instanceof File ? 
+                    { name: value.name, size: value.size, type: value.type } : value);
+            }
+            
+            // Log específico dos arquivos
+            console.log('Files being sent:', files.map(f => ({ 
+                name: f.name, 
+                size: f.size, 
+                type: f.type,
+                lastModified: f.lastModified 
+            })));
+
+            try {
+                response.style.display = 'block';
+                response.className = 'response';
+                response.innerHTML = 'Enviando...';
+
+                const res = await fetch('/api/v1/accounts/1/internal_chat/send_message', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                const result = await res.json();
+                
+                if (res.ok) {
+                    response.className = 'response success';
+                    response.innerHTML = `<strong>Sucesso!</strong><br>Mensagem enviada com sucesso.<br><pre>${JSON.stringify(result, null, 2)}</pre>`;
+                } else {
+                    response.className = 'response error';
+                    response.innerHTML = `<strong>Erro!</strong><br>Status: ${res.status}<br><pre>${JSON.stringify(result, null, 2)}</pre>`;
+                }
+            } catch (error) {
+                response.className = 'response error';
+                response.innerHTML = `<strong>Erro de rede!</strong><br>${error.message}`;
+            }
+        });
+
+        // Test loading messages
+        document.getElementById('loadMessages').addEventListener('click', async function() {
+            const roomType = document.getElementById('roomType').value;
+            const roomId = document.getElementById('roomId').value;
+            const messagesList = document.getElementById('messagesList');
+
+            messagesList.innerHTML = 'Carregando mensagens...';
+
+            try {
+                let url = `/api/v1/accounts/1/internal_chat/messages?room_type=${roomType}`;
+                if (roomId) {
+                    url += `&room_id=${roomId}`;
+                }
+
+                const response = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || ''
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    const messages = result.data || [];
+                    if (messages.length === 0) {
+                        messagesList.innerHTML = '<p>Nenhuma mensagem encontrada.</p>';
+                    } else {
+                        let html = `<p><strong>${messages.length} mensagens encontradas:</strong></p>`;
+                        messages.forEach(msg => {
+                            html += `<div style="margin-bottom: 10px; padding: 5px; border-bottom: 1px solid #eee;">
+                                <strong>ID:</strong> ${msg.id} | 
+                                <strong>Sender:</strong> ${msg.sender?.name || 'Unknown'} | 
+                                <strong>Content:</strong> ${msg.content || '(sem conteúdo)'} |
+                                <strong>Attachments:</strong> ${msg.attachments?.length || 0}
+                            </div>`;
+                        });
+                        messagesList.innerHTML = html;
+                    }
+                } else {
+                    messagesList.innerHTML = `<p style="color: red;">Erro ao carregar mensagens: ${result.error || 'Erro desconhecido'}</p>`;
+                }
+            } catch (error) {
+                messagesList.innerHTML = `<p style="color: red;">Erro de rede: ${error.message}</p>`;
+            }
+        });
+
+        // Test ActionCable connection
+        document.getElementById('testActionCable').addEventListener('click', async function() {
+            const statusElement = document.getElementById('connectionStatus');
+            
+            try {
+                statusElement.textContent = 'Conectando...';
+                
+                // Simple WebSocket test to see if ActionCable is working
+                const ws = new WebSocket('ws://localhost:3000/cable');
+                
+                ws.onopen = function() {
+                    statusElement.textContent = 'Conectado (WebSocket OK)';
+                    ws.close();
+                };
+                
+                ws.onerror = function() {
+                    statusElement.textContent = 'Erro de conexão WebSocket';
+                };
+                
+                ws.onclose = function() {
+                    console.log('WebSocket connection closed');
+                };
+                
+            } catch (error) {
+                statusElement.textContent = `Erro: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>

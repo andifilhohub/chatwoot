@@ -1,0 +1,63 @@
+{
+  "INTERNAL_CHAT": {
+    "ROOMS": {
+      "TITLE": "Chat Rooms",
+      "GENERAL": "General",
+      "GENERAL_CHAT": "General Chat",
+      "GENERAL_CHAT_DESCRIPTION": "Team-wide conversations",
+      "TEAMS": "Teams",
+      "DIRECT": "Direct Messages",
+      "DIRECT_SEARCH": "Search teammates",
+      "DIRECT_EMPTY": "No teammates match your search.",
+      "NO_ROOM_SELECTED": "No room selected",
+      "NO_TEAMS": "No teams available",
+      "MEMBERS_COUNT": "{{count}} participants",
+      "TYPE": {
+        "GENERAL": "Team discussions and announcements",
+        "TEAM": "Team channel",
+        "DIRECT": "Direct chat",
+        "NONE": "Unknown"
+      }
+    },
+    "STATE": {
+      "LOADING_ROOMS": "Loading rooms...",
+      "NO_DIRECT_ROOMS": "No direct conversations",
+      "LOADING_MESSAGES": "Loading messages...",
+      "EMPTY": "Select a room to start chatting",
+      "SEARCHING_CONVERSATIONS": "Searching conversations...",
+      "NO_CONVERSATIONS": "No conversations found with that query."
+    },
+    "ACTIONS": {
+      "NEW_DIRECT": "New chat",
+      "REMOVE": "Remove",
+      "EDIT": "Edit",
+      "DELETE": "Delete",
+      "ADD_ATTACHMENT": "Attach file",
+      "MENTION_CONVERSATION": "Mention conversation",
+      "CANCEL": "Cancel",
+      "SAVE_CHANGES": "Save",
+      "SEND": "Send"
+    },
+    "PLACEHOLDER": {
+      "NEW_MESSAGE": "Type your message...",
+      "EDIT_MESSAGE": "Update your message..."
+    },
+    "MESSAGES": {
+      "CONVERSATION_LINK": "Conversation #{{id}} · {{name}}",
+      "UNKNOWN_CONTACT": "Unknown contact",
+      "ATTACHMENT": "Attachment",
+      "EDITED": "Edited",
+      "DELETED": "Deleted",
+      "CONVERSATION_SELECTED": "Linked to conversation #{{id}} · {{name}}",
+      "CONVERSATION_PLACEHOLDER": "Search conversations by contact or ID",
+      "CONVERSATION_RESULT": "#{{id}} · {{name}}"
+    },
+    "YOU": "You",
+    "ERRORS": {
+      "LOAD_MESSAGES": "We couldn't load messages right now.",
+      "CREATE_DIRECT": "Unable to start the direct chat.",
+      "SEND_MESSAGE": "We couldn't send this message.",
+      "DELETE_MESSAGE": "We couldn't delete this message."
+    }
+  }
+}

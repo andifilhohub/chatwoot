@@ -9,6 +9,7 @@ import { useI18n } from 'vue-i18n';
 import { useStorage } from '@vueuse/core';
 import { useSidebarKeyboardShortcuts } from './useSidebarKeyboardShortcuts';
 import { vOnClickOutside } from '@vueuse/components';
+import { useInternalChat } from 'dashboard/composables/useInternalChat';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import SidebarGroup from './SidebarGroup.vue';
@@ -36,6 +37,7 @@ const { accountScopedRoute } = useAccount();
 const store = useStore();
 const searchShortcut = useKbd([`$mod`, 'k']);
 const { t } = useI18n();
+const { toggleInternalChat } = useInternalChat();
 
 const toggleShortcutModalFn = show => {
   if (show) {
@@ -296,6 +298,12 @@ const menuItems = computed(() => {
           })),
         },
       ],
+    },
+    {
+      name: 'Internal Chat',
+      label: 'Chat Interno',
+      icon: 'i-lucide-message-square',
+      onClick: toggleInternalChat,
     },
     {
       name: 'Reports',

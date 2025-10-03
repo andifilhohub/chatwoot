@@ -1,0 +1,62 @@
+{
+  "INTERNAL_CHAT": {
+    "ROOMS": {
+      "TITLE": "Salas de Chat",
+      "GENERAL": "Geral",
+      "GENERAL_CHAT": "Chat Geral",
+      "GENERAL_CHAT_DESCRIPTION": "Conversas da equipe",
+      "TEAMS": "Times",
+      "DIRECT": "Mensagens Diretas",
+      "DIRECT_SEARCH": "Buscar colegas",
+      "DIRECT_EMPTY": "Nenhum colega corresponde à sua busca.",
+      "NO_ROOM_SELECTED": "Nenhuma sala selecionada",
+      "NO_TEAMS": "Nenhum time disponível",
+      "MEMBERS_COUNT": "{{count}} participantes",
+      "TYPE": {
+        "GENERAL": "Discussões e anúncios da equipe",
+        "TEAM": "Canal da equipe",
+        "DIRECT": "Chat direto",
+        "NONE": "Desconhecido"
+      }
+    },
+    "STATE": {
+      "LOADING_ROOMS": "Carregando salas...",
+      "NO_DIRECT_ROOMS": "Nenhuma conversa direta",
+      "LOADING_MESSAGES": "Carregando mensagens...",
+      "EMPTY": "Selecione uma sala para começar a conversar",
+      "SEARCHING_CONVERSATIONS": "Buscando conversas...",
+      "NO_CONVERSATIONS": "Nenhuma conversa encontrada com essa busca."
+    },
+    "ACTIONS": {
+      "NEW_DIRECT": "Novo chat",
+      "REMOVE": "Remover",
+      "EDIT": "Editar",
+      "DELETE": "Excluir",
+      "ADD_ATTACHMENT": "Anexar arquivo",
+      "MENTION_CONVERSATION": "Mencionar conversa",
+      "CANCEL": "Cancelar",
+      "SAVE_CHANGES": "Salvar",
+      "SEND": "Enviar"
+    },
+    "PLACEHOLDER": {
+      "NEW_MESSAGE": "Digite sua mensagem...",
+      "EDIT_MESSAGE": "Atualize sua mensagem..."
+    },
+    "MESSAGES": {
+      "CONVERSATION_LINK": "Conversa #{{id}} · {{name}}",
+      "UNKNOWN_CONTACT": "Contato desconhecido",
+      "ATTACHMENT": "Anexo",
+      "EDITED": "Editado",
+      "DELETED": "Excluído",
+      "CONVERSATION_SELECTED": "Vinculado à conversa #{{id}} · {{name}}",
+      "CONVERSATION_PLACEHOLDER": "Buscar conversas por contato ou ID",
+      "CONVERSATION_RESULT": "#{{id}} · {{name}}"
+    },
+    "ERRORS": {
+      "LOAD_MESSAGES": "Não foi possível carregar as mensagens agora.",
+      "CREATE_DIRECT": "Não foi possível iniciar o chat direto.",
+      "SEND_MESSAGE": "Não foi possível enviar esta mensagem.",
+      "DELETE_MESSAGE": "Não foi possível excluir esta mensagem."
+    }
+  }
+}
