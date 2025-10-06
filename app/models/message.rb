@@ -11,6 +11,7 @@
 #  message_type              :integer          not null
 #  private                   :boolean          default(FALSE), not null
 #  processed_message_content :text
+#  schedule_info             :jsonb
 #  sender_type               :string
 #  sentiment                 :jsonb
 #  status                    :integer          default("sent")

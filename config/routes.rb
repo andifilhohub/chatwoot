@@ -202,6 +202,19 @@ Rails.application.routes.draw do
           end
           resources :labels, only: [:index, :show, :create, :update, :destroy]
 
+          # Internal Chat Routes
+          resources :internal_chat, only: [] do
+            collection do
+              get :rooms
+              post :rooms, action: :create_room
+              get :messages
+              get 'messages/general', action: :messages_general
+              get 'messages/:room_type/:room_id', action: :messages
+              post :send_message
+              post :create_direct_room, action: :create_room
+            end
+          end
+
           resources :notifications, only: [:index, :update, :destroy] do
             collection do
               post :read_all

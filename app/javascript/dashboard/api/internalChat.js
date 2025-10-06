@@ -13,7 +13,7 @@ class InternalChatAPI extends ApiClient {
 
   // Create a direct room with a user
   createDirectRoom(targetUserId) {
-    return axios.post(`${this.url}/rooms`, {
+    return axios.post(`${this.url}/create_direct_room`, {
       target_user_id: targetUserId,
     });
   }
@@ -31,13 +31,19 @@ class InternalChatAPI extends ApiClient {
 
   // Send message via HTTP (will trigger WebSocket broadcast)
   sendMessage({ roomType, roomId, content }) {
-    return axios.post(`${this.url}/send_message`, {
+    const payload = {
       message: {
         content,
         room_type: roomType,
         room_id: roomId,
       },
-    });
+    };
+
+    return axios.post(`${this.url}/send_message`, payload)
+      .catch(error => {
+        console.error('❌ Internal chat API error:', error);
+        throw error;
+      });
   }
 }
 

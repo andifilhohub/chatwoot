@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Teste Chat Interno - Debug</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>Teste Chat Interno - Debug</h1>
+    
+    <div>
+        <h3>Enviar Mensagem</h3>
+        <textarea id="messageContent" placeholder="Digite sua mensagem..." style="width: 300px; height: 100px;">Teste de mensagem simples</textarea>
+        <br><br>
+        
+        <label>Room Type:</label>
+        <select id="roomType">
+            <option value="general">General</option>
+            <option value="direct">Direct</option>
+        </select>
+        <br><br>
+        
+        <label>Room ID:</label>
+        <input type="text" id="roomId" value="general" placeholder="ID da sala">
+        <br><br>
+        
+        <button onclick="sendMessage()">Enviar Mensagem</button>
+        <button onclick="loadMessages()">Carregar Mensagens</button>
+        <button onclick="testConnection()">Testar Conexão</button>
+    </div>
+    
+    <div id="result" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f9f9f9;">
+        <h3>Resultado:</h3>
+        <pre id="resultText"></pre>
+    </div>
+    
+    <div id="messages" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc; background: #f0f0f0;">
+        <h3>Mensagens:</h3>
+        <pre id="messagesText"></pre>
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1/accounts/1/internal_chat';
+        
+        function log(message) {
+            console.log(message);
+            document.getElementById('resultText').textContent += message + '\n';
+        }
+        
+        function logMessages(message) {
+            console.log(message);
+            document.getElementById('messagesText').textContent += message + '\n';
+        }
+        
+        async function sendMessage() {
+            const content = document.getElementById('messageContent').value;
+            const roomType = document.getElementById('roomType').value;
+            const roomId = document.getElementById('roomId').value;
+            
+            log(`📤 Enviando mensagem: "${content}" para ${roomType}/${roomId}`);
+            
+            try {
+                const response = await fetch(`${API_BASE}/send_message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({
+                        message: {
+                            content: content,
+                            room_type: roomType,
+                            room_id: roomId
+                        }
+                    })
+                });
+                
+                log(`📡 Response status: ${response.status}`);
+                log(`📡 Response headers: ${JSON.stringify([...response.headers.entries()])}`);
+                
+                const data = await response.text();
+                log(`📡 Response body: ${data}`);
+                
+                if (response.ok) {
+                    log('✅ Mensagem enviada com sucesso!');
+                } else {
+                    log(`❌ Erro ao enviar mensagem: ${response.status}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Erro na requisição: ${error.message}`);
+            }
+        }
+        
+        async function loadMessages() {
+            const roomType = document.getElementById('roomType').value;
+            const roomId = document.getElementById('roomId').value;
+            
+            logMessages(`📨 Carregando mensagens para ${roomType}/${roomId}`);
+            
+            try {
+                let url;
+                if (roomType === 'general') {
+                    url = `${API_BASE}/messages/general`;
+                } else {
+                    url = `${API_BASE}/messages/${roomType}/${roomId}`;
+                }
+                
+                logMessages(`📡 URL: ${url}`);
+                
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    }
+                });
+                
+                logMessages(`📡 Response status: ${response.status}`);
+                
+                const data = await response.text();
+                logMessages(`📡 Response body: ${data}`);
+                
+                if (response.ok) {
+                    logMessages('✅ Mensagens carregadas com sucesso!');
+                } else {
+                    logMessages(`❌ Erro ao carregar mensagens: ${response.status}`);
+                }
+                
+            } catch (error) {
+                logMessages(`❌ Erro na requisição: ${error.message}`);
+            }
+        }
+        
+        async function testConnection() {
+            log('🔌 Testando conexão com ActionCable...');
+            
+            try {
+                // Simular conexão ActionCable
+                if (window.App && window.App.cable) {
+                    log('✅ ActionCable disponível');
+                    
+                    const subscription = window.App.cable.subscriptions.create(
+                        {
+                            channel: 'InternalChatChannel',
+                            account_id: 1
+                        },
+                        {
+                            connected() {
+                                log('✅ Conectado ao ActionCable');
+                            },
+                            disconnected() {
+                                log('❌ Desconectado do ActionCable');
+                            },
+                            received(data) {
+                                log(`📨 Mensagem recebida via ActionCable: ${JSON.stringify(data)}`);
+                            }
+                        }
+                    );
+                    
+                    log('📡 Subscription criada');
+                } else {
+                    log('❌ ActionCable não disponível');
+                }
+                
+            } catch (error) {
+                log(`❌ Erro na conexão: ${error.message}`);
+            }
+        }
+        
+        // Limpar logs
+        function clearLogs() {
+            document.getElementById('resultText').textContent = '';
+            document.getElementById('messagesText').textContent = '';
+        }
+        
+        // Adicionar botão para limpar
+        document.body.innerHTML += '<br><button onclick="clearLogs()">Limpar Logs</button>';
+    </script>
+</body>
+</html>

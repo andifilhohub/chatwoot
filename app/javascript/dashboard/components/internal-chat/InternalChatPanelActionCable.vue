@@ -336,21 +336,16 @@ const store = useStore();
 const { isInternalChatOpen, closeInternalChat } = useInternalChat();
 
 // Usar o composable de dados
-const { 
+const {
   messages,
   rooms,
-  currentRoom,
   isLoading,
-  isConnected,
-  newMessage,
   loadRooms,
-  loadMessages,
   sendMessage,
   createDirectRoom,
   selectRoom,
   disconnect,
   currentUser,
-  currentAccountId
 } = useInternalChatData();
 
 // Estado local do componente
@@ -362,47 +357,78 @@ const loading = computed(() => isLoading.value);
 
 // Dados computados
 const directMessages = computed(() => {
-  return store.getters['agents/getAgents'] || [];
+  const agents = store.getters['agents/getAgents'] || [];
+  const currentUserId = currentUser.value?.id;
+
+  return agents.filter(agent => agent.id !== currentUserId);
 });
 
 const teamChats = computed(() => {
   return store.getters['teams/getTeams'] || [];
 });
 
-const generalChat = computed(() => ({
-  id: 'general',
-  name: t('INTERNAL_CHAT.ROOMS.GENERAL'),
-  description: t('INTERNAL_CHAT.ROOMS.TYPE.GENERAL')
-}));
+const generalChat = computed(() => {
+  const generalRoom = rooms.value?.general;
+  if (generalRoom) {
+    return {
+      identifier: generalRoom.identifier || 'general',
+      room_id: generalRoom.room_id,
+      id: generalRoom.id,
+      name: generalRoom.name || t('INTERNAL_CHAT.ROOMS.GENERAL'),
+      description: generalRoom.description || t('INTERNAL_CHAT.ROOMS.TYPE.GENERAL'),
+      room_type: generalRoom.room_type || generalRoom.type || 'general',
+    };
+  }
+
+  return {
+    identifier: 'general',
+    room_id: null,
+    id: 'general',
+    name: t('INTERNAL_CHAT.ROOMS.GENERAL'),
+    description: t('INTERNAL_CHAT.ROOMS.TYPE.GENERAL'),
+    room_type: 'general',
+  };
+});
 
 const currentChat = computed(() => {
   if (selectedChatType.value === 'general') {
     return generalChat.value;
-  } else if (selectedChatType.value === 'team' && selectedChatId.value) {
-    return teamChats.value.find(team => team.id === selectedChatId.value);
-  } else if (selectedChatType.value === 'direct' && selectedChatId.value) {
-    return directMessages.value.find(agent => agent.id === selectedChatId.value);
+  }
+  if (selectedChatType.value === 'team' && selectedChatId.value) {
+    return teamChats.value.find(team => team.id === selectedChatId.value) || null;
+  }
+  if (selectedChatType.value === 'direct' && selectedChatId.value) {
+    return directMessages.value.find(agent => agent.id === selectedChatId.value) || null;
   }
   return null;
 });
 
 // Funções auxiliares
 const selectChatMethod = async (type, id = null) => {
-  console.log(`🎯 Selecting chat: ${type}, id: ${id}`);
   selectedChatType.value = type;
   selectedChatId.value = id;
   
   if (type === 'direct' && id) {
-    // Criar ou encontrar sala direta
     const room = await createDirectRoom(id);
-    if (room) {
-      await selectRoom(room);
+    if (!room) {
+      console.warn('⚠️ Failed to create/get direct room');
     }
   } else if (type === 'general') {
-    // Carregar sala geral (implementar conforme necessário)
-    // Por enquanto, apenas simular
-    const generalRoom = { id: 'general', name: 'General Chat' };
+    const generalRoom = {
+      ...generalChat.value,
+      id: generalChat.value.identifier || 'general',
+    };
     await selectRoom(generalRoom);
+  } else if (type === 'team' && id) {
+    const team = teamChats.value.find(item => item.id === id);
+    if (team) {
+      const teamRoom = {
+        ...team,
+        identifier: team.id,
+        room_type: 'team',
+      };
+      await selectRoom(teamRoom);
+    }
   }
 };
 
@@ -481,25 +507,20 @@ const sendMessageAction = async () => {
 
   const messageContent = messageInput.value.trim();
   
-  console.log('📤 Sending message:', {
-    content: messageContent,
-    currentUserId: currentUser.value?.id,
-    selectedChatType: selectedChatType.value,
-    selectedChatId: selectedChatId.value
-  });
-  
   // Limpa o input imediatamente
   messageInput.value = '';
 
   // Chama a função do composable
-  await sendMessage(messageContent);
-  
-  // Scroll para baixo após enviar
-  nextTick(() => {
-    if (messageContainer.value) {
-      messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
-    }
-  });
+  try {
+    await sendMessage(messageContent);
+  } finally {
+    // Scroll para baixo após enviar
+    nextTick(() => {
+      if (messageContainer.value) {
+        messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+      }
+    });
+  }
 };
 
 const handleKeydown = (event) => {
@@ -527,13 +548,34 @@ const formatLastSeen = (timestamp) => {
 };
 
 onMounted(() => {
-  console.log('🚀 Internal Chat component mounted');
-  console.log('🚀 isInternalChatOpen initial state:', isInternalChatOpen.value);
   loadRooms();
 });
 
 onUnmounted(() => {
-  console.log('🔄 Internal Chat component unmounted');
   disconnect();
+});
+
+watch(isInternalChatOpen, isOpen => {
+  if (!isOpen) {
+    return;
+  }
+
+  loadRooms();
+
+  if (selectedChatType.value === 'general') {
+    Promise.resolve(selectChatMethod('general')).catch(() => {});
+  } else if (selectedChatType.value === 'team' && selectedChatId.value) {
+    Promise.resolve(selectChatMethod('team', selectedChatId.value)).catch(() => {});
+  } else if (selectedChatType.value === 'direct' && selectedChatId.value) {
+    Promise.resolve(selectChatMethod('direct', selectedChatId.value)).catch(() => {});
+  }
+});
+
+watch(messages, () => {
+  nextTick(() => {
+    if (messageContainer.value) {
+      messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+    }
+  });
 });
 </script>

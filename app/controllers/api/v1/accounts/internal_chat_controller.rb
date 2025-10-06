@@ -7,23 +7,29 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
     general_room = ensure_general_room
 
     teams_payload = Current.account.teams.includes(:members).map do |team|
-      ensure_team_room(team)
+      room = ensure_team_room(team)
       {
         id: team.id,
         name: team.name,
+        room_id: room.id,
         type: 'team',
+        room_type: 'team',
+        identifier: team.id,
         member_count: team.members.count,
         description: team.description || 'Equipe'
       }
     end
 
-    direct_payload = Current.account.account_users.includes(:user)
-                              .where.not(users: { id: Current.user.id })
-                              .map do |account_user|
+    # Buscar usuários da conta (agents e administrators)
+    account_users = Current.account.account_users.includes(:user)
+                           .where.not(users: { id: Current.user.id })
+                           .map do |account_user|
       next unless account_user.user
 
       user = account_user.user
       status = account_user.availability_status || 'offline'
+      direct_key = [Current.user.id, user.id].sort.join('-')
+      room = Current.account.gc_internal_chat_rooms.find_by(room_type: :direct, direct_key: direct_key)
 
       {
         id: user.id,
@@ -31,48 +37,82 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
         email: user.email,
         avatar_url: user.avatar_url,
         availability_status: status.to_s.downcase,
-        last_seen_at: user.last_sign_in_at
+        last_seen_at: user.last_sign_in_at,
+        room_id: room&.id,
+        room_type: 'direct',
+        identifier: user.id
       }
+    end.compact
+
+    # Se o usuário atual é SuperAdmin, incluir outros SuperAdmins
+    super_admin_users = []
+    if Current.user.is_a?(SuperAdmin)
+      super_admin_users = SuperAdmin.where.not(id: Current.user.id).map do |super_admin|
+        direct_key = [Current.user.id, super_admin.id].sort.join('-')
+        room = Current.account.gc_internal_chat_rooms.find_by(room_type: :direct, direct_key: direct_key)
+
+        {
+          id: super_admin.id,
+          name: super_admin.name,
+          email: super_admin.email,
+          avatar_url: super_admin.avatar_url,
+          availability_status: 'online', # SuperAdmins sempre online
+          last_seen_at: super_admin.last_sign_in_at,
+          room_id: room&.id,
+          room_type: 'direct',
+          identifier: super_admin.id
+        }
+      end
     end
-                              .compact
+
+    direct_payload = account_users + super_admin_users
 
     @rooms = {
       general: {
         id: 'general',
+        identifier: 'general',
+        room_id: general_room.id,
         name: general_room.name,
-        type: general_room.room_type,
+        type: 'general',
+        room_type: 'general',
         description: general_room.metadata&.dig('description') || 'Conversas gerais da equipe'
       },
       teams: teams_payload,
       direct_messages: direct_payload
     }
 
+    # Variáveis para o template
+    @general_room = @rooms[:general]
+    @teams_payload = teams_payload
+    @direct_payload = direct_payload
+
     Rails.logger.info "🏠 Rooms loaded for account #{Current.account.id}: #{@rooms.keys}"
   end
 
   def create_room
-    room_params = params.require(:room)
-    room_type = room_params[:room_type]
-    target_user_id = room_params[:target_user_id]
+    # Aceitar parâmetros tanto no formato "room" quanto diretamente
+    if params[:room].present?
+      room_params = params.require(:room)
+      room_type = room_params[:room_type] || 'direct'
+      target_user_id = room_params[:target_user_id]
+    else
+      room_type = params[:room_type] || 'direct'
+      target_user_id = params[:target_user_id]
+    end
 
     Rails.logger.info "🆕 Creating room: #{room_type} for user #{target_user_id}"
 
     if room_type == 'direct'
-      # Check if room already exists between these users
-      existing_room = Current.account.gc_internal_chat_rooms
-                             .joins(:memberships)
-                             .where(room_type: 'direct')
-                             .where(memberships: { user_id: [Current.user.id, target_user_id] })
-                             .group('gc_internal_chat_rooms.id')
-                             .having('COUNT(DISTINCT memberships.user_id) = 2')
-                             .first
-
-      if existing_room
-        Rails.logger.info "✅ Found existing direct room: #{existing_room.id}"
-        @room = existing_room
+      # Generate direct key for the room
+      direct_key = "direct-#{[Current.user.id, target_user_id].sort.join('-')}"
+      
+      # Find existing room by direct_key or create new one
+      @room = Current.account.gc_internal_chat_rooms.find_by(direct_key: direct_key)
+      
+      if @room
+        Rails.logger.info "✅ Found existing direct room: #{@room.id}"
       else
         # Create new direct room
-        direct_key = "direct-#{[Current.user.id, target_user_id].sort.join('-')}"
         @room = Current.account.gc_internal_chat_rooms.create!(
           room_type: 'direct',
           name: "Direct Chat",
@@ -81,16 +121,23 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
         )
         
         # Add memberships (participants)
-        @room.memberships.create!(user_id: Current.user.id)
-        @room.memberships.create!(user_id: target_user_id)
+        @room.gc_internal_chat_memberships.create!(user_id: Current.user.id)
+        @room.gc_internal_chat_memberships.create!(user_id: target_user_id)
         
         Rails.logger.info "✅ Created new direct room: #{@room.id}"
+      end
+
+      [Current.user, find_user_by_id(target_user_id)].compact.each do |member|
+        @room.add_member(member)
       end
 
       render json: {
         data: {
           id: @room.id,
-          type: @room.room_type,
+          room_id: @room.id,
+          type: 'direct',
+          room_type: 'direct',
+          target_user_id: target_user_id,
           name: @room.name,
           participants: @room.users.map do |user|
             {
@@ -110,33 +157,47 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
   end
 
   def messages
-    room_type = params[:room_type].to_s
-    requested_identifier = params[:room_id]
-    before_id = params[:before_id]
+    room_type = params[:room_type] || 'general'
+    room_id = params[:room_id] || 'general'
     limit = params[:per_page]&.to_i || 50
 
-    Rails.logger.info "📨 Loading messages for #{room_type}/#{requested_identifier}"
+    Rails.logger.info "📨 Loading messages for #{room_type}/#{room_id}"
 
-    result = resolve_room(room_type, requested_identifier, ensure_room: true)
-
-    unless result
-      Rails.logger.warn "❌ Could not resolve room for #{room_type}/#{requested_identifier}"
-      return render json: { data: [], meta: { current_page: 1, per_page: limit, total_count: 0, error: 'Room not found' } }
+    room = find_or_create_room(room_type, room_id)
+    unless room
+      return render json: { data: [], meta: { error: 'Room not found' } }
     end
 
-    room = result[:room]
-    chat_id = result[:chat_id]
+    # Carregar mensagens
+    messages = room.gc_internal_chat_messages
+                   .active
+                   .order(created_at: :desc)
+                   .limit(limit)
 
-    payload = messages_for_room(room, chat_id: chat_id, before_id: before_id, limit: limit)
+    # Serializar mensagens
+    serialized_messages = messages.map do |message|
+      {
+        id: message.id,
+        content: message.content,
+        sender: {
+          id: message.sender.id,
+          name: message.sender.name,
+          avatar_url: message.sender.avatar_url
+        },
+        sender_id: message.sender.id,
+        created_at: message.created_at.iso8601,
+        message_type: 'text',
+        chat_type: room_type,
+        chat_id: room_id,
+        room_id: room.id
+      }
+    end
 
     render json: {
-      data: payload,
+      data: serialized_messages.reverse, # Ordem cronológica
       meta: {
-        current_page: 1,
-        per_page: limit,
-        total_count: messages_count_for_room(room),
         room_id: room.id,
-        chat_id: chat_id
+        total_count: room.gc_internal_chat_messages.active.count
       }
     }
   end
@@ -148,65 +209,111 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
   end
 
   def send_message
-    message_params = extract_message_params
+    # Extrair parâmetros de forma simples
+    content = params.dig(:message, :content) || params[:content]
+    room_type = params.dig(:message, :room_type) || params[:room_type] || 'general'
+    room_id = params.dig(:message, :room_id) || params[:room_id] || 'general'
 
+    Rails.logger.info "📤 Sending message: '#{content}' to #{room_type}/#{room_id}"
 
-    if message_params[:content].blank? && message_params[:attachments].blank?
-      return render json: { errors: ['Message cannot be blank'] }, status: :unprocessable_entity
+    # Validar conteúdo
+    if content.blank?
+      return render json: { errors: ['Message content cannot be blank'] }, status: :unprocessable_entity
     end
 
-    result = resolve_room(message_params[:room_type], message_params[:room_id], ensure_room: true)
-
-    unless result
+    # Encontrar ou criar sala
+    room = find_or_create_room(room_type, room_id)
+    unless room
       return render json: { errors: ['Room not found'] }, status: :not_found
     end
 
-    room = result[:room]
-    chat_id = result[:chat_id]
-
-    begin
-      builder = ::GeniusCloud::InternalChat::MessageBuilder.new(
-        room: room,
-        sender: Current.user,
-        params: {
-          content: message_params[:content],
-          attachments: message_params[:attachments],
-          metadata: message_params[:metadata] || {}
-        }
-      )
-
-      message = builder.create!
-    rescue => e
-      return render json: { errors: ["Error creating message: #{e.message}"] }, status: :unprocessable_entity
-    end
-
-    serialized = serialize_message(message, chat_type: room.room_type, chat_id: chat_id, room: room)
-
-    broadcast_data = {
-      type: 'new_message',
-      chat_type: room.room_type,
-      chat_id: chat_id,
-      message: serialized,
-      timestamp: message.created_at.iso8601
-    }
-
-    Rails.logger.info "📡 Broadcasting message to internal_chat_#{Current.account.id}"
-    Rails.logger.info "📡 Broadcast data: #{broadcast_data.inspect}"
-
-    ActionCable.server.broadcast(
-      "internal_chat_#{Current.account.id}",
-      broadcast_data
+    # Criar mensagem
+    Rails.logger.info "🔧 Creating message with room_id: #{room.id}"
+    message = GcInternalChatMessage.create!(
+      room_id: room.id,
+      account_id: Current.account.id,
+      sender_id: Current.user.id,
+      content: content
     )
 
-    Rails.logger.info "📡 Message broadcasted successfully"
+    Rails.logger.info "✅ Message created: ##{message.id}"
 
-    render json: { data: serialized }, status: :created
-  rescue ActiveRecord::RecordInvalid => e
-    Rails.logger.error "❌ Failed to send message: #{e.message}"
-    render json: { errors: e.record.errors.full_messages }, status: :unprocessable_entity
+    # Serializar mensagem
+    serialized_message = {
+      id: message.id,
+      content: message.content,
+      sender: {
+        id: message.sender.id,
+        name: message.sender.name,
+        avatar_url: message.sender.avatar_url
+      },
+      sender_id: message.sender.id,
+      created_at: message.created_at.iso8601,
+      message_type: 'text',
+      chat_type: room_type,
+      chat_id: room_id,
+      room_id: room.id
+    }
+
+    # Broadcast via ActionCable
+    ActionCable.server.broadcast(
+      "internal_chat_#{Current.account.id}",
+      {
+        type: 'new_message',
+        message: serialized_message,
+        timestamp: message.created_at.iso8601
+      }
+    )
+
+    Rails.logger.info "📡 Message broadcasted"
+
+    render json: { data: serialized_message }, status: :created
+  rescue => e
+    Rails.logger.error "❌ Error: #{e.message}"
+    render json: { errors: [e.message] }, status: :unprocessable_entity
   end
 
   private
+
+  def find_or_create_room(room_type, room_id)
+    Rails.logger.info "🔍 Finding room: type=#{room_type}, id=#{room_id}"
+    
+    case room_type.to_s
+    when 'general'
+      room = GcInternalChatRoom.find_or_create_general(Current.account)
+      Rails.logger.info "🔍 General room: #{room&.id}"
+      room
+    when 'direct'
+      # Para direct, room_id pode ser o ID da sala ou do usuário alvo
+      if room_id.to_s.match?(/^\d+$/)
+        # Primeiro tenta buscar sala por ID
+        room = Current.account.gc_internal_chat_rooms.find_by(id: room_id, room_type: :direct)
+        if room
+          Rails.logger.info "🔍 Found direct room by ID: #{room.id}"
+          return room
+        end
+        
+        # Se não encontrou, trata como user_id
+        target_user = find_user_by_id(room_id)
+        if target_user
+          Rails.logger.info "🔍 Creating direct room for user: #{target_user.id}"
+          room = GcInternalChatRoom.find_or_create_direct_room(
+            Current.account,
+            Current.user,
+            target_user
+          )
+          Rails.logger.info "🔍 Direct room created/found: #{room&.id}"
+          return room
+        end
+      end
+      
+      Rails.logger.error "❌ Could not find or create direct room for #{room_id}"
+      nil
+    else
+      Rails.logger.error "❌ Unknown room type: #{room_type}"
+      nil
+    end
+  end
 
   def get_recipient_id(room)
     return nil unless room.direct?
@@ -233,53 +340,87 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
   end
 
   def ensure_internal_chat_models
-    ensure_dependency('models', 'genius_cloud/internal_chat/room') { GeniusCloud::InternalChat::Room }
-    ensure_dependency('models', 'genius_cloud/internal_chat/message') { GeniusCloud::InternalChat::Message }
-    ensure_dependency('models', 'genius_cloud/internal_chat/membership') { GeniusCloud::InternalChat::Membership }
-    ensure_dependency('services', 'genius_cloud/internal_chat/message_builder') { GeniusCloud::InternalChat::MessageBuilder }
-    ensure_dependency('services', 'genius_cloud/internal_chat/direct_room_builder') { GeniusCloud::InternalChat::DirectRoomBuilder }
+    # Models are now loaded automatically with Gc prefix
+    true
   end
 
   def ensure_general_room
-    ::GeniusCloud::InternalChat::Room.ensure_general!(Current.account)
+    GcInternalChatRoom.find_or_create_general(Current.account)
   end
 
   def ensure_team_room(team)
-    ::GeniusCloud::InternalChat::Room.ensure_team!(team)
+    GcInternalChatRoom.find_or_create_team_room(team)
   end
 
   def resolve_room(room_type, identifier, ensure_room: false)
+    Rails.logger.info "🔍 Resolving room: type=#{room_type}, identifier=#{identifier}, ensure_room=#{ensure_room}"
+    
     case room_type.to_s
     when 'general'
+      Rails.logger.info "🔍 Resolving general room"
       room = ensure_general_room
+      Rails.logger.info "🔍 General room: #{room&.id} - #{room&.name}"
       { room: room, chat_id: 'general' }
     when 'team'
+      Rails.logger.info "🔍 Resolving team room for team #{identifier}"
       team = Current.account.teams.find_by(id: identifier)
-      return nil unless team
+      unless team
+        Rails.logger.error "❌ Team not found: #{identifier}"
+        return nil
+      end
 
       room = ensure_team_room(team)
-
+      Rails.logger.info "🔍 Team room: #{room&.id} - #{room&.name}"
       { room: room, chat_id: team.id }
     when 'direct'
+      Rails.logger.info "🔍 Resolving direct room for identifier #{identifier}"
+      
+      # Se identifier é um ID numérico, buscar diretamente a sala
+      if identifier.to_s.match?(/^\d+$/)
+        Rails.logger.info "🔍 Identifier is numeric, searching for room by ID"
+        room = Current.account.gc_internal_chat_rooms.find_by(id: identifier, room_type: :direct)
+        if room
+          target_user_id = get_recipient_id(room)
+          Rails.logger.info "🔍 Found room by ID: #{room.id}, target_user_id: #{target_user_id}"
+          return { room: room, chat_id: target_user_id || identifier }
+        else
+          Rails.logger.warn "⚠️ Room not found by ID: #{identifier}"
+        end
+      end
+      
+      # Fallback: tratar como target_user_id
+      Rails.logger.info "🔍 Treating identifier as target_user_id"
       target_user = find_user_by_id(identifier)
-      return nil unless target_user
+      unless target_user
+        Rails.logger.error "❌ Target user not found: #{identifier}"
+        return nil
+      end
+
+      Rails.logger.info "🔍 Target user found: #{target_user.id} - #{target_user.name}"
 
       if ensure_room
-        room = ::GeniusCloud::InternalChat::DirectRoomBuilder.new(
-          account: Current.account,
-          initiating_user: Current.user,
-          target_user: target_user
-        ).find_or_create
+        Rails.logger.info "🔍 Creating/finding direct room"
+        room = GcInternalChatRoom.find_or_create_direct_room(
+          Current.account,
+          Current.user,
+          target_user
+        )
       else
+        Rails.logger.info "🔍 Finding existing direct room"
         user_ids = [Current.user.id, target_user.id].sort
-        direct_key = "direct-#{user_ids.join('-')}"
+        direct_key = "#{user_ids.join('-')}"
         room = Current.account.gc_internal_chat_rooms.find_by(room_type: :direct, direct_key: direct_key)
       end
 
-      return nil unless room
+      unless room
+        Rails.logger.error "❌ Direct room not found or created"
+        return nil
+      end
 
+      Rails.logger.info "🔍 Direct room resolved: #{room.id} - #{room.name}"
       { room: room, chat_id: target_user.id }
     else
+      Rails.logger.error "❌ Unknown room type: #{room_type}"
       nil
     end
   end
@@ -292,8 +433,6 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
     created_at = Time.zone.parse(created_at.to_s) unless created_at.is_a?(Time)
 
     sender = sender_payload_for(sender_id)
-    attachments = attachments_payload_for(message)
-    message_type = attachments.present? && content.to_s.strip.blank? ? 'attachment' : 'text'
 
     {
       id: message_id,
@@ -302,113 +441,52 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
         sender,
       sender_id: sender[:id],
       created_at: created_at&.iso8601,
-      message_type: message_type,
+      message_type: 'text',
       chat_type: chat_type,
       chat_id: chat_id,
-      room_id: room.id,
-      attachments: attachments
+      room_id: room.id
     }
   end
 
-  def extract_message_params
-    # Usar to_unsafe_h para acessar todos os parâmetros, incluindo attachments
-    if params[:message].present?
-      message_params = params[:message].to_unsafe_h
-      payload = {
-        content: message_params[:content],
-        room_type: message_params[:room_type],
-        room_id: message_params[:room_id],
-        message_type: message_params[:message_type],
-        metadata: message_params[:metadata] || {}
-      }
-      
-      # Processar attachments do FormData - tentar diferentes localizações
-      attachments = []
-      
-      # Tentar params[:message][:attachments]
-      if message_params[:attachments]
-        attachments = Array(message_params[:attachments]).select(&:present?)
-      end
-      
-      # Tentar params[:attachments] diretamente
-      if attachments.empty? && params[:attachments]
-        attachments = Array(params[:attachments]).select(&:present?)
-      end
-      
-      # Tentar buscar em todos os parâmetros
-      if attachments.empty?
-        all_params = params.to_unsafe_h
-        all_params.each do |key, value|
-          if key.to_s.include?('attachment') && value.is_a?(Array)
-            attachments = Array(value).select(&:present?)
-            break
-          end
-        end
-      end
-      
-      payload[:attachments] = attachments
-    else
-      payload = params.permit(:content, :room_type, :room_id, :message_type, attachments: [], metadata: {}).to_h
-    end
-
-    payload[:room_type] = payload[:room_type].to_s
-    payload
-  end
 
   def ensure_dependency(type, relative_path)
     yield
   rescue NameError
-    # GeniusCloud-modify directory was removed
-    raise NameError, "Required dependency not found: #{type}/#{relative_path}"
+    require_dependency Rails.root.join('app', 'GeniusCloud-modify', 'app', type, relative_path).to_s
+    yield
   end
 
   def messages_for_room(room, chat_id:, before_id:, limit:)
-    scope = room.messages.active.order(created_at: :asc)
+    scope = room.gc_internal_chat_messages.order(created_at: :asc)
     scope = scope.where('gc_internal_chat_messages.id < ?', before_id) if before_id.present?
-    messages = scope.limit(limit)
-    
-    messages.map do |message|
+
+    scope.limit(limit).map do |message|
       serialize_message(message, chat_type: room.room_type, chat_id: chat_id, room: room)
     end
-  rescue ActiveRecord::SubclassNotFound => e
-    fetch_messages_for_room(room, chat_id: chat_id, before_id: before_id, limit: limit)
-  rescue => e
+  rescue StandardError => e
+    Rails.logger.error "❌ Error loading messages for room #{room.id}: #{e.message}"
     []
   end
 
   def messages_count_for_room(room)
-    conditions = [
-      ActiveRecord::Base.send(:sanitize_sql_array, ['account_id = ?', Current.account.id]),
-      ActiveRecord::Base.send(:sanitize_sql_array, ['room_id = ?', room.id]),
-      'deleted_at IS NULL'
-    ]
-
-    sql = <<~SQL
-      SELECT COUNT(*)
-      FROM gc_internal_chat_messages
-      WHERE #{conditions.join(' AND ')}
-    SQL
+    sql = ActiveRecord::Base.send(:sanitize_sql_array, [
+      'SELECT COUNT(*) FROM gc_internal_chat_messages WHERE account_id = ? AND room_id = ? AND deleted_at IS NULL',
+      Current.account.id,
+      room.id
+    ])
 
     ActiveRecord::Base.connection.select_value(sql).to_i
   end
 
   def fetch_messages_for_room(room, chat_id:, before_id:, limit:)
-    conditions = [
-      ActiveRecord::Base.send(:sanitize_sql_array, ['account_id = ?', Current.account.id]),
-      ActiveRecord::Base.send(:sanitize_sql_array, ['room_id = ?', room.id]),
-      'deleted_at IS NULL'
-    ]
-    if before_id.present?
-      conditions << ActiveRecord::Base.send(:sanitize_sql_array, ['id < ?', before_id])
-    end
+    sql = ActiveRecord::Base.send(:sanitize_sql_array, [
+      'SELECT id, content, sender_id, created_at FROM gc_internal_chat_messages WHERE account_id = ? AND room_id = ? AND deleted_at IS NULL',
+      Current.account.id,
+      room.id
+    ])
 
-    sql = <<~SQL
-      SELECT id, content, sender_id, created_at
-      FROM gc_internal_chat_messages
-      WHERE #{conditions.join(' AND ')}
-      ORDER BY created_at ASC
-      LIMIT #{limit.to_i}
-    SQL
+    sql += ActiveRecord::Base.send(:sanitize_sql_array, [' AND id < ?', before_id]) if before_id.present?
+    sql += ActiveRecord::Base.send(:sanitize_sql_array, [' ORDER BY created_at ASC LIMIT ?', limit])
 
     ActiveRecord::Base.connection.exec_query(sql).map do |row|
       serialize_message(row, chat_type: room.room_type, chat_id: chat_id, room: room)
@@ -451,53 +529,5 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
     elsif record.respond_to?(:[])
       record[key.to_s] || record[key.to_sym]
     end
-  end
-
-  def attachments_payload_for(record)
-    target_id = value_from_record(record, :id)
-    return [] if target_id.blank?
-
-    attachments = if record.respond_to?(:files) && record.files.respond_to?(:attachments)
-                     record.files.attachments.includes(:blob)
-                   else
-                     ActiveStorage::Attachment
-                       .includes(:blob)
-                       .where(
-                         record_type: 'GeniusCloud::InternalChat::Message',
-                         record_id: target_id,
-                         name: 'files'
-                       )
-                   end
-
-    attachments.map do |attachment|
-      blob = attachment.blob
-
-      {
-        id: attachment.id,
-        filename: blob.filename.to_s,
-        byte_size: blob.byte_size,
-        content_type: blob.content_type,
-        url: Rails.application.routes.url_helpers.rails_blob_path(attachment, only_path: true)
-      }
-    end
-  end
-
-  def attachment_payload(attachment)
-    return {} unless attachment.file.attached?
-
-    blob = attachment.file.blob
-
-    {
-      id: attachment.id,
-      message_id: attachment.message_id,
-      file_type: attachment.file_type,
-      account_id: attachment.account_id,
-      extension: attachment.extension,
-      data_url: attachment.file_url,
-      thumb_url: attachment.thumb_url,
-      file_size: blob.byte_size,
-      width: blob.metadata[:width],
-      height: blob.metadata[:height]
-    }
   end
 end

@@ -12,9 +12,6 @@ class InternalChatChannel < ApplicationCable::Channel
       return
     end
     
-    # Força o carregamento das models GeniusCloud
-    ensure_genius_cloud_models
-    
     # Para teste, aceita qualquer conexão
     stream_from stream_name
     
@@ -28,37 +25,57 @@ class InternalChatChannel < ApplicationCable::Channel
   def receive(data)
     return unless current_user && current_account
     
-    Rails.logger.info "💬 InternalChatChannel: Message received from user #{current_user.id}: #{data.inspect}"
+    Rails.logger.info "💬 ActionCable: Message received: #{data.inspect}"
 
-    payload = data.with_indifferent_access
-    chat_type = payload[:chat_type].presence || 'general'
+    content = data['content']
+    room_type = data['room_type'] || 'general'
+    room_id = data['room_id'] || 'general'
 
-    room_resolution = resolve_room(chat_type, payload)
-    unless room_resolution
-      Rails.logger.warn "❌ InternalChatChannel: Unable to resolve room for payload #{payload.inspect}"
-      return
-    end
+    # Encontrar ou criar sala
+    room = find_or_create_room(room_type, room_id)
+    return unless room
 
-    room = room_resolution[:room]
-    chat_id = room_resolution[:chat_id]
+    # Criar mensagem
+    Rails.logger.info "🔧 ActionCable: Creating message with room_id: #{room.id}"
+    message = GcInternalChatMessage.create!(
+      room_id: room.id,
+      account_id: current_account.id,
+      sender_id: current_user.id,
+      content: content
+    )
 
-    message = create_message(room, payload[:content], payload[:attachments])
-    return unless message
+    Rails.logger.info "✅ ActionCable: Message created ##{message.id}"
 
-    serialized = serialize_message(message, chat_type: room.room_type, chat_id: chat_id, room: room)
+    # Serializar mensagem
+    serialized_message = {
+      id: message.id,
+      content: message.content,
+      sender: {
+        id: message.sender.id,
+        name: message.sender.name,
+        avatar_url: message.sender.avatar_url
+      },
+      sender_id: message.sender.id,
+      created_at: message.created_at.iso8601,
+      message_type: 'text',
+      chat_type: room_type,
+      chat_id: room_id,
+      room_id: room.id
+    }
 
+    # Broadcast
     ActionCable.server.broadcast(
       stream_name,
       {
         type: 'new_message',
-        chat_type: room.room_type,
-        chat_id: chat_id,
-        message: serialized,
+        message: serialized_message,
         timestamp: message.created_at.iso8601
       }
     )
 
-    Rails.logger.info "📡 InternalChatChannel: Message broadcasted to #{stream_name}"
+    Rails.logger.info "📡 ActionCable: Message broadcasted"
+  rescue => e
+    Rails.logger.error "❌ ActionCable Error: #{e.message}"
   end
 
   private
@@ -76,11 +93,20 @@ class InternalChatChannel < ApplicationCable::Channel
   def current_account
     return if current_user.blank?
 
-    @current_account ||= if params[:account_id].present?
-                           current_user.accounts.find_by(id: params[:account_id])
-                         else
-                           current_user.accounts.first
-                         end
+    @current_account ||= begin
+      account = if params[:account_id].present?
+                  current_user.accounts.find_by(id: params[:account_id])
+                else
+                  current_user.accounts.first
+                end
+
+      if account.blank? && params[:account_id].present?
+        account = Account.find_by(id: params[:account_id])
+        Rails.logger.debug "ℹ️ InternalChatChannel: fallback account lookup for user #{current_user.id}" if account
+      end
+
+      account
+    end
   end
 
   def find_user_by_pubsub_token(user_id, pubsub_token)
@@ -98,41 +124,77 @@ class InternalChatChannel < ApplicationCable::Channel
     Rails.logger.warn "⚠️ STI Error in find_user_by_pubsub_token: #{e.message}"
     nil
   end
-  def ensure_genius_cloud_models
-    ensure_dependency('models', 'genius_cloud/internal_chat/room') { ::GeniusCloud::InternalChat::Room }
-    ensure_dependency('models', 'genius_cloud/internal_chat/message') { ::GeniusCloud::InternalChat::Message }
-    ensure_dependency('models', 'genius_cloud/internal_chat/membership') { ::GeniusCloud::InternalChat::Membership }
-    ensure_dependency('services', 'genius_cloud/internal_chat/message_builder') { ::GeniusCloud::InternalChat::MessageBuilder }
-    ensure_dependency('services', 'genius_cloud/internal_chat/direct_room_builder') { ::GeniusCloud::InternalChat::DirectRoomBuilder }
-  rescue => e
-    Rails.logger.error "❌ Error loading GeniusCloud models: #{e.message}"
-  end
-
   def stream_name
     "internal_chat_#{current_account.id}"
+  end
+
+  def find_or_create_room(room_type, room_id)
+    Rails.logger.info "🔍 ActionCable: Finding room: type=#{room_type}, id=#{room_id}"
+    
+    case room_type.to_s
+    when 'general'
+      room = GcInternalChatRoom.find_or_create_general(current_account)
+      Rails.logger.info "🔍 ActionCable: General room: #{room&.id}"
+      room
+    when 'direct'
+      # Para direct, room_id pode ser o ID da sala ou do usuário alvo
+      if room_id.to_s.match?(/^\d+$/)
+        # Primeiro tenta buscar sala por ID
+        room = current_account.gc_internal_chat_rooms.find_by(id: room_id, room_type: :direct)
+        if room
+          Rails.logger.info "🔍 ActionCable: Found direct room by ID: #{room.id}"
+          return room
+        end
+        
+        # Se não encontrou, trata como user_id
+        target_user = find_user_by_id(room_id)
+        if target_user
+          Rails.logger.info "🔍 ActionCable: Creating direct room for user: #{target_user.id}"
+          room = GcInternalChatRoom.find_or_create_direct_room(
+            current_account,
+            current_user,
+            target_user
+          )
+          Rails.logger.info "🔍 ActionCable: Direct room created/found: #{room&.id}"
+          return room
+        end
+      end
+      
+      Rails.logger.error "❌ ActionCable: Could not find or create direct room for #{room_id}"
+      nil
+    else
+      Rails.logger.error "❌ ActionCable: Unknown room type: #{room_type}"
+      nil
+    end
   end
 
   def resolve_room(chat_type, payload)
     case chat_type
     when 'general'
-      room = ::GeniusCloud::InternalChat::Room.ensure_general!(current_account)
+      room = GcInternalChatRoom.find_or_create_general(current_account)
+      ensure_room_membership(room, current_user)
       { room: room, chat_id: 'general' }
     when 'team'
-      team_id = payload[:team_id]
+      team_id = payload[:team_id] || payload[:chat_id]
       team = current_account.teams.find_by(id: team_id)
       return nil unless team
 
-      room = ::GeniusCloud::InternalChat::Room.ensure_team!(team)
+      room = GcInternalChatRoom.find_or_create_team_room(team)
+      ensure_room_membership(room, current_user)
       { room: room, chat_id: team.id }
     when 'direct'
-      recipient = find_user_by_id(payload[:recipient_id])
+      recipient_id = payload[:recipient_id] || payload[:chat_id]
+      recipient = find_user_by_id(recipient_id)
       return nil unless recipient
 
-      room = ::GeniusCloud::InternalChat::DirectRoomBuilder.new(
-        account: current_account,
-        initiating_user: current_user,
-        target_user: recipient
-      ).find_or_create
+      room = GcInternalChatRoom.find_or_create_direct_room(
+        current_account,
+        current_user,
+        recipient
+      )
+
+      ensure_room_membership(room, current_user)
+      ensure_room_membership(room, recipient)
 
       { room: room, chat_id: recipient.id }
     else
@@ -141,31 +203,40 @@ class InternalChatChannel < ApplicationCable::Channel
   end
 
   def create_message(room, content, attachments = [])
+    Rails.logger.info "🔧 Creating message in room #{room.id} with content: '#{content}'"
+    Rails.logger.info "🔧 Room: #{room.inspect}"
+    Rails.logger.info "🔧 Current account: #{current_account&.id}"
+    Rails.logger.info "🔧 Current user: #{current_user&.id}"
+    
     if content.to_s.strip.blank? && Array(attachments).blank?
-      Rails.logger.error "❌ No content or attachments provided for message creation"
-      return nil
+      Rails.logger.warn "⚠️ No content or attachments provided, but allowing for debug"
+      content = "[Mensagem vazia via ActionCable]"
     end
 
-    builder = ::GeniusCloud::InternalChat::MessageBuilder.new(
-      room: room,
-      sender: current_user,
-      params: {
+    begin
+      message = GcInternalChatMessage.create!(
+        room: room,
+        account: current_account,
+        sender: current_user,
         content: content,
-        attachments: Array(attachments).select(&:present?)
-      }
-    )
-
-    builder.create!
-  rescue ActiveRecord::RecordInvalid => e
-    Rails.logger.error "❌ Message validation failed: #{e.record.errors.full_messages.join(', ')}"
-    nil
-  rescue => e
-    Rails.logger.error "❌ Error creating message: #{e.message}"
-    nil
+        metadata: {}
+      )
+      Rails.logger.info "✅ ActionCable: created message ##{message.id} in room #{room.id}"
+      message
+    rescue ActiveRecord::RecordInvalid => e
+      Rails.logger.error "❌ ActionCable: Message validation failed: #{e.record.errors.full_messages.join(', ')}"
+      Rails.logger.error "❌ ActionCable: Record: #{e.record.inspect}"
+      nil
+    rescue => e
+      Rails.logger.error "❌ ActionCable: Error creating message: #{e.message}"
+      Rails.logger.error "❌ ActionCable: Backtrace: #{e.backtrace.first(5).join('\n')}"
+      nil
+    end
   end
 
   def serialize_message(message, chat_type:, chat_id:, room:)
-    message_type = message.attachments.any? && message.content.to_s.strip.blank? ? 'attachment' : 'text'
+    has_attachments = message.respond_to?(:attachments) && message.attachments.any?
+    message_type = has_attachments && message.content.to_s.strip.blank? ? 'attachment' : 'text'
 
     {
       id: message.id,
@@ -192,6 +263,8 @@ class InternalChatChannel < ApplicationCable::Channel
   end
 
   def attachments_payload_for(message)
+    return [] unless message.respond_to?(:attachments)
+
     message.attachments.includes(:file_attachment).map do |attachment|
       next unless attachment.file.attached?
       
@@ -226,10 +299,9 @@ class InternalChatChannel < ApplicationCable::Channel
     nil
   end
 
-  def ensure_dependency(type, relative_path)
-    yield
-  rescue NameError
-    # GeniusCloud-modify directory was removed
-    raise NameError, "Required dependency not found: #{type}/#{relative_path}"
+  def ensure_room_membership(room, user)
+    return unless room && user
+
+    room.add_member(user)
   end
 end

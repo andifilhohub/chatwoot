@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chat Interno Simples</title>
+    <meta charset="utf-8">
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .chat-container { border: 1px solid #ccc; height: 400px; overflow-y: auto; padding: 10px; margin: 10px 0; }
+        .message { margin: 5px 0; padding: 5px; border-radius: 5px; }
+        .message.sent { background: #e3f2fd; text-align: right; }
+        .message.received { background: #f5f5f5; }
+        .input-area { display: flex; gap: 10px; }
+        .input-area input { flex: 1; padding: 10px; }
+        .input-area button { padding: 10px 20px; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+        .status.success { background: #d4edda; color: #155724; }
+        .status.error { background: #f8d7da; color: #721c24; }
+        .status.info { background: #d1ecf1; color: #0c5460; }
+    </style>
+</head>
+<body>
+    <h1>Chat Interno Simples</h1>
+    
+    <div class="status info" id="status">
+        Status: Conectando...
+    </div>
+    
+    <div class="chat-container" id="chatContainer">
+        <div class="message info">Chat carregado. Digite uma mensagem abaixo.</div>
+    </div>
+    
+    <div class="input-area">
+        <input type="text" id="messageInput" placeholder="Digite sua mensagem..." onkeypress="handleKeyPress(event)">
+        <button onclick="sendMessage()">Enviar</button>
+        <button onclick="loadMessages()">Recarregar</button>
+    </div>
+    
+    <div>
+        <h3>Configurações:</h3>
+        <label>Room Type: </label>
+        <select id="roomType">
+            <option value="general">General</option>
+            <option value="direct">Direct</option>
+        </select>
+        <label>Room ID: </label>
+        <input type="text" id="roomId" value="general" placeholder="ID da sala">
+    </div>
+
+    <script>
+        const API_BASE = '/api/v1/accounts/1/internal_chat';
+        let actionCableSubscription = null;
+        
+        function updateStatus(message, type = 'info') {
+            const statusEl = document.getElementById('status');
+            statusEl.textContent = `Status: ${message}`;
+            statusEl.className = `status ${type}`;
+        }
+        
+        function addMessage(content, isSent = false, sender = null) {
+            const container = document.getElementById('chatContainer');
+            const messageEl = document.createElement('div');
+            messageEl.className = `message ${isSent ? 'sent' : 'received'}`;
+            
+            let messageText = content;
+            if (sender) {
+                messageText = `<strong>${sender.name}:</strong> ${content}`;
+            }
+            
+            messageEl.innerHTML = messageText;
+            container.appendChild(messageEl);
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const content = input.value.trim();
+            
+            if (!content) {
+                updateStatus('Digite uma mensagem!', 'error');
+                return;
+            }
+            
+            const roomType = document.getElementById('roomType').value;
+            const roomId = document.getElementById('roomId').value;
+            
+            updateStatus('Enviando mensagem...', 'info');
+            
+            try {
+                const response = await fetch(`${API_BASE}/send_message`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                    },
+                    body: JSON.stringify({
+                        message: {
+                            content: content,
+                            room_type: roomType,
+                            room_id: roomId
+                        }
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    addMessage(content, true);
+                    input.value = '';
+                    updateStatus('Mensagem enviada!', 'success');
+                } else {
+                    const error = await response.text();
+                    updateStatus(`Erro: ${response.status} - ${error}`, 'error');
+                }
+                
+            } catch (error) {
+                updateStatus(`Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        async function loadMessages() {
+            const roomType = document.getElementById('roomType').value;
+            const roomId = document.getElementById('roomId').value;
+            
+            updateStatus('Carregando mensagens...', 'info');
+            
+            try {
+                let url;
+                if (roomType === 'general') {
+                    url = `${API_BASE}/messages/general`;
+                } else {
+                    url = `${API_BASE}/messages/${roomType}/${roomId}`;
+                }
+                
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const container = document.getElementById('chatContainer');
+                    container.innerHTML = '';
+                    
+                    if (data.data && data.data.length > 0) {
+                        data.data.forEach(message => {
+                            addMessage(message.content, false, message.sender);
+                        });
+                        updateStatus(`${data.data.length} mensagens carregadas`, 'success');
+                    } else {
+                        addMessage('Nenhuma mensagem encontrada', false);
+                        updateStatus('Nenhuma mensagem encontrada', 'info');
+                    }
+                } else {
+                    updateStatus(`Erro ao carregar: ${response.status}`, 'error');
+                }
+                
+            } catch (error) {
+                updateStatus(`Erro: ${error.message}`, 'error');
+            }
+        }
+        
+        function connectActionCable() {
+            if (window.App && window.App.cable) {
+                actionCableSubscription = window.App.cable.subscriptions.create(
+                    {
+                        channel: 'InternalChatChannel',
+                        account_id: 1
+                    },
+                    {
+                        connected() {
+                            updateStatus('Conectado ao chat em tempo real!', 'success');
+                        },
+                        disconnected() {
+                            updateStatus('Desconectado do chat', 'error');
+                        },
+                        received(data) {
+                            if (data.type === 'new_message' && data.message) {
+                                const message = data.message;
+                                addMessage(message.content, false, message.sender);
+                                updateStatus('Nova mensagem recebida!', 'success');
+                            }
+                        }
+                    }
+                );
+            } else {
+                updateStatus('ActionCable não disponível', 'error');
+            }
+        }
+        
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            connectActionCable();
+            loadMessages();
+        });
+    </script>
+</body>
+</html>
