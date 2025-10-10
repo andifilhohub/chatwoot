@@ -503,23 +503,32 @@ const getInitials = (name) => {
 };
 
 const sendMessageAction = async () => {
-  if (!messageInput.value.trim()) return;
+  console.log('🚀 sendMessageAction called!', {
+    hasInput: !!messageInput.value,
+    inputValue: messageInput.value,
+    trimmed: messageInput.value?.trim()
+  });
+  
+  if (!messageInput.value.trim()) {
+    console.warn('⚠️ Empty message, returning');
+    return;
+  }
 
   const messageContent = messageInput.value.trim();
+  
+  console.log('📝 Message content:', messageContent);
   
   // Limpa o input imediatamente
   messageInput.value = '';
 
+  console.log('🔄 Calling sendMessage from composable...');
+  
   // Chama a função do composable
   try {
     await sendMessage(messageContent);
-  } finally {
-    // Scroll para baixo após enviar
-    nextTick(() => {
-      if (messageContainer.value) {
-        messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
-      }
-    });
+    console.log('✅ sendMessage completed');
+  } catch (error) {
+    console.error('❌ sendMessage error:', error);
   }
 };
 
@@ -571,11 +580,16 @@ watch(isInternalChatOpen, isOpen => {
   }
 });
 
-watch(messages, () => {
-  nextTick(() => {
-    if (messageContainer.value) {
-      messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
-    }
-  });
+// Watch inteligente: só faz scroll quando o array de mensagens aumenta
+let previousLength = 0;
+watch(() => messages.value.length, (newLength) => {
+  if (newLength > previousLength && newLength > 0) {
+    nextTick(() => {
+      if (messageContainer.value) {
+        messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+      }
+    });
+  }
+  previousLength = newLength;
 });
 </script>

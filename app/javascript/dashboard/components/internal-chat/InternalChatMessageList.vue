@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, defineProps } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, watch, defineProps } from 'vue';
 
 const props = defineProps({
   messages: {
@@ -34,10 +34,19 @@ const formatTime = timestamp => {
 const scrollToBottom = () => {
   nextTick(() => {
     if (container.value) {
+      console.debug('📜 Scrolling to bottom. ScrollHeight:', container.value.scrollHeight);
       container.value.scrollTop = container.value.scrollHeight;
+    } else {
+      console.warn('⚠️ Container ref is null, cannot scroll');
     }
   });
 };
+
+// Monitora mudanças no array de mensagens
+watch(() => props.messages.length, (newLength, oldLength) => {
+  console.debug('📊 Messages array changed:', { oldLength, newLength });
+  scrollToBottom();
+});
 
 onMounted(() => {
   scrollToBottom();
@@ -70,7 +79,11 @@ onUnmounted(() => {
     </div>
 
     <!-- Messages -->
-    <div v-else class="flex-1 overflow-y-auto space-y-3 p-4">
+    <div
+      v-else
+      ref="container"
+      class="flex-1 overflow-y-auto space-y-3 p-4"
+    >
       <div
         v-for="message in messages"
         :key="message.id"

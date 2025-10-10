@@ -143,6 +143,7 @@ export default function useInternalChatData() {
   const ensureSubscription = (force = false) => {
     const accountId = currentAccountId.value;
     if (!accountId) {
+      console.warn('⚠️ ensureSubscription: No account ID');
       return;
     }
 
@@ -153,24 +154,35 @@ export default function useInternalChatData() {
 
     const user = currentUser.value;
     if (!user?.id || !user?.pubsub_token) {
+      console.warn('⚠️ ensureSubscription: No user or pubsub_token');
       return;
     }
 
     const key = `${accountId}:${user.id}:${user.pubsub_token}`;
     if (!force && subscription && subscriptionKey === key) {
+      console.log('✅ ensureSubscription: Already subscribed with same key');
       return;
     }
 
     if (subscription) {
+      console.log('🔄 ensureSubscription: Unsubscribing old subscription');
       subscription.unsubscribe();
       subscription = null;
     }
 
+    console.log('🔌 ensureSubscription: Creating new subscription', {
+      accountId,
+      userId: user.id,
+      hasPubsubToken: !!user.pubsub_token
+    });
+
     let cable = window.App?.cable;
     if (cable) {
+      console.log('✅ Using existing window.App.cable');
       ownsConsumer = false;
     } else {
       if (!consumer) {
+        console.log('🔌 Creating new ActionCable consumer');
         consumer = createConsumer(cableURL());
       }
       cable = consumer;
@@ -190,16 +202,18 @@ export default function useInternalChatData() {
     params.user_id = user.id;
     params.pubsub_token = user.pubsub_token;
 
+    console.log('📡 Creating subscription with params:', params);
+
     subscription = cable.subscriptions.create(
       params,
       {
         connected() {
-          console.debug('✅ Internal chat cable connected');
+          console.log('✅ Internal chat cable connected');
           isConnected.value = true;
         },
 
         disconnected() {
-          console.debug('❌ Internal chat cable disconnected');
+          console.log('❌ Internal chat cable disconnected');
           isConnected.value = false;
           subscription = null;
           subscriptionKey = null;
@@ -207,11 +221,24 @@ export default function useInternalChatData() {
         },
 
         received(data) {
-          console.debug('📩 Internal chat payload:', data);
+          console.log('📩 Internal chat payload received:', data);
           if (data.type === 'new_message' && data.message) {
             if (!currentRoom.value) {
+              console.warn('⚠️ No current room selected, ignoring message');
               return;
             }
+
+            console.log('🔍 Current room:', {
+              room_id: currentRoom.value.room_id,
+              room_type: currentRoom.value.room_type,
+              identifier: currentRoom.value.identifier
+            });
+            
+            console.log('🔍 Incoming message:', {
+              room_id: data.message.room_id,
+              chat_type: data.chat_type,
+              chat_id: data.chat_id
+            });
 
             const incomingRoomId = data.message.room_id;
             const currentRoomId = currentRoom.value.room_id;
@@ -224,8 +251,17 @@ export default function useInternalChatData() {
             const matchesGeneral = currentRoom.value.room_type === 'general'
               && data.chat_type === 'general';
 
+            console.log('🔍 Match results:', {
+              matchesRoomId,
+              matchesIdentifier,
+              matchesGeneral
+            });
+
             if (matchesRoomId || matchesIdentifier || matchesGeneral) {
+              console.log('✅ Message matches current room, adding to UI');
               upsertMessage(data.message);
+            } else {
+              console.warn('❌ Message does NOT match current room, ignoring');
             }
           }
         },
@@ -243,10 +279,21 @@ export default function useInternalChatData() {
       return;
     }
 
+    console.log('📤 Sending message:', {
+      content: text,
+      currentRoom: currentRoom.value
+    });
+
     const normalizedRoom = normalizeRoom(currentRoom.value);
     const targetRoomId = normalizedRoom.room_id
       || normalizedRoom.id
       || normalizedRoom.identifier;
+
+    console.log('📤 Normalized room:', {
+      room_type: normalizedRoom.room_type,
+      room_id: normalizedRoom.room_id,
+      targetRoomId
+    });
 
     const messageData = {
       roomType: normalizedRoom.room_type,
@@ -270,20 +317,26 @@ export default function useInternalChatData() {
       temp: true,
     };
 
+    console.log('📤 Adding temp message to UI:', tempId);
     upsertMessage(tempMessage);
 
     ensureSubscription();
 
     try {
+      console.log('📤 Calling API with:', messageData);
       const response = await internalChatAPI.sendMessage(messageData);
+      console.log('📤 API response:', response.data);
+      
       const savedMessage = response.data?.data;
 
       const tempIndex = messages.value.findIndex(message => message.id === tempId);
       if (tempIndex !== -1) {
+        console.log('📤 Removing temp message');
         messages.value.splice(tempIndex, 1);
       }
 
       if (savedMessage) {
+        console.log('📤 Adding saved message to UI:', savedMessage.id);
         upsertMessage(savedMessage);
         if (savedMessage.room_id) {
           currentRoom.value = {
@@ -293,8 +346,7 @@ export default function useInternalChatData() {
         }
       }
 
-      await loadMessages(normalizedRoom.room_type, targetRoomId);
-
+      console.log('✅ Message sent successfully');
       return savedMessage;
     } catch (error) {
       console.error('❌ Failed to send internal chat message:', error);

@@ -69,6 +69,8 @@ class InternalChatChannel < ApplicationCable::Channel
       {
         type: 'new_message',
         message: serialized_message,
+        chat_type: room_type,  # Adicionar para o frontend
+        chat_id: room_id,      # Adicionar para o frontend
         timestamp: message.created_at.iso8601
       }
     )

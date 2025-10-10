@@ -256,16 +256,21 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
     }
 
     # Broadcast via ActionCable
-    ActionCable.server.broadcast(
-      "internal_chat_#{Current.account.id}",
-      {
-        type: 'new_message',
-        message: serialized_message,
-        timestamp: message.created_at.iso8601
-      }
-    )
-
-    Rails.logger.info "📡 Message broadcasted"
+    channel_name = "internal_chat_#{Current.account.id}"
+    broadcast_data = {
+      type: 'new_message',
+      message: serialized_message,
+      chat_type: room_type,  # Adicionar aqui também para o frontend
+      chat_id: room_id,      # Adicionar aqui também para o frontend
+      timestamp: message.created_at.iso8601
+    }
+    
+    Rails.logger.info "📡 Broadcasting to channel: #{channel_name}"
+    Rails.logger.info "📡 Broadcast data: #{broadcast_data.inspect}"
+    
+    ActionCable.server.broadcast(channel_name, broadcast_data)
+    
+    Rails.logger.info "📡 Message broadcasted successfully"
 
     render json: { data: serialized_message }, status: :created
   rescue => e
