@@ -255,8 +255,8 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
       room_id: room.id
     }
 
-    # Broadcast via ActionCable
-    channel_name = "internal_chat_#{Current.account.id}"
+    # Broadcast via ActionCable to correct channel
+    channel_name = determine_broadcast_channel(room)
     broadcast_data = {
       type: 'new_message',
       message: serialized_message,
@@ -288,6 +288,27 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
       room = GcInternalChatRoom.find_or_create_general(Current.account)
       Rails.logger.info "🔍 General room: #{room&.id}"
       room
+    when 'team'
+      # Para team, room_id pode ser o ID da sala ou do team
+      if room_id.to_s.match?(/^\d+$/)
+        # Primeiro tenta buscar sala por ID
+        room = Current.account.gc_internal_chat_rooms.find_by(id: room_id, room_type: :team)
+        if room
+          Rails.logger.info "🔍 Found team room by ID: #{room.id}"
+          return room
+        end
+        
+        # Se não encontrou, trata como team_id
+        team = Current.account.teams.find_by(id: room_id)
+        if team
+          room = GcInternalChatRoom.find_or_create_team_room(team)
+          Rails.logger.info "🔍 Team room: #{room&.id} for team #{team.name}"
+          return room
+        end
+      end
+      
+      Rails.logger.error "❌ Team not found: #{room_id}"
+      nil
     when 'direct'
       # Para direct, room_id pode ser o ID da sala ou do usuário alvo
       if room_id.to_s.match?(/^\d+$/)
@@ -533,6 +554,25 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
       record.public_send(key)
     elsif record.respond_to?(:[])
       record[key.to_s] || record[key.to_sym]
+    end
+  end
+
+  # Channel routing helpers - matching InternalChatChannel logic
+  def general_stream_name
+    "internal_chat_#{Current.account.id}"
+  end
+
+  def team_stream_name(team_id)
+    "internal_chat_#{Current.account.id}_team_#{team_id}"
+  end
+
+  def determine_broadcast_channel(room)
+    case room.room_type.to_s
+    when 'team'
+      team_stream_name(room.team_id)
+    else
+      # general e direct vão para o canal geral
+      general_stream_name
     end
   end
 end

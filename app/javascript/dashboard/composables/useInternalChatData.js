@@ -245,19 +245,20 @@ export default function useInternalChatData() {
             const matchesRoomId = currentRoomId && incomingRoomId
               && String(currentRoomId) === String(incomingRoomId);
 
-            const matchesIdentifier = currentRoom.value.identifier && data.chat_id
-              && String(currentRoom.value.identifier) === String(data.chat_id);
-
-            const matchesGeneral = currentRoom.value.room_type === 'general'
-              && data.chat_type === 'general';
+            const incomingRoomType = data.chat_type;
+            const currentRoomType = currentRoom.value.room_type;
+            const matchesRoomType = String(currentRoomType) === String(incomingRoomType);
 
             console.log('🔍 Match results:', {
               matchesRoomId,
-              matchesIdentifier,
-              matchesGeneral
+              matchesRoomType,
+              incomingRoomType,
+              currentRoomType
             });
 
-            if (matchesRoomId || matchesIdentifier || matchesGeneral) {
+            // Mensagem só é aceita se:
+            // 1. O room_id é o mesmo E o tipo também é o mesmo
+            if (matchesRoomId && matchesRoomType) {
               console.log('✅ Message matches current room, adding to UI');
               upsertMessage(data.message);
             } else {
