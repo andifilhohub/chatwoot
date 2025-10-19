@@ -17,6 +17,8 @@ const props = defineProps({
   children: { type: Array, default: undefined },
   getterKeys: { type: Object, default: () => ({}) },
   onClick: { type: Function, default: null },
+  // Optional class to style numeric count badge
+  countClass: { type: String, default: '' },
 });
 
 const {
@@ -150,6 +152,7 @@ onMounted(async () => {
       :label
       :to
       :getter-keys="getterKeys"
+      :count-class="countClass"
       :is-active="isActive"
       :has-active-child="hasActiveChild"
       :expandable="hasChildren"

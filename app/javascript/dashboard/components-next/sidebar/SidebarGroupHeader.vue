@@ -12,15 +12,26 @@ const props = defineProps({
   isActive: { type: Boolean, default: false },
   hasActiveChild: { type: Boolean, default: false },
   getterKeys: { type: Object, default: () => ({}) },
+  // Optional class to customize the appearance of the numeric count badge
+  countClass: { type: String, default: '' },
 });
 
 const emit = defineEmits(['toggle']);
 
 const showBadge = useMapGetter(props.getterKeys.badge);
 const dynamicCount = useMapGetter(props.getterKeys.count);
-const count = computed(() =>
-  dynamicCount.value > 99 ? '99+' : dynamicCount.value
-);
+const count = computed(() => (dynamicCount.value > 99 ? '99+' : dynamicCount.value));
+
+const countClassComputed = computed(() => {
+  if (!dynamicCount.value || props.expandable) return '';
+  if (props.countClass) {
+    return `rounded-full text-xs leading-5 font-medium text-center px-2 py-0.5 ${props.countClass}`;
+  }
+  // default outline style (legacy look)
+  return `rounded-md capitalize text-xs leading-5 font-medium text-center outline outline-1 px-1 flex-shrink-0 ${
+    props.isActive ? 'text-n-blue-text outline-n-slate-6' : 'text-n-slate-11 outline-n-strong'
+  }`;
+});
 </script>
 
 <template>
@@ -49,16 +60,7 @@ const count = computed(() =>
       <span class="text-sm font-medium leading-5 truncate">
         {{ label }}
       </span>
-      <span
-        v-if="dynamicCount && !expandable"
-        class="rounded-md capitalize text-xs leading-5 font-medium text-center outline outline-1 px-1 flex-shrink-0"
-        :class="{
-          'text-n-blue-text outline-n-slate-6': isActive,
-          'text-n-slate-11 outline-n-strong': !isActive,
-        }"
-      >
-        {{ count }}
-      </span>
+      <span v-if="dynamicCount && !expandable" :class="countClassComputed">{{ count }}</span>
     </div>
     <span
       v-if="expandable"

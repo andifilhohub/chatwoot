@@ -1,0 +1,673 @@
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { createConsumer } from '@rails/actioncable';
+import { useStore } from 'vuex';
+import internalChatAPI from '../api/internalChat';
+
+export default function useInternalChatData() {
+  const store = useStore();
+
+  // Estado reativo
+  const messages = ref([]);
+  const rooms = ref({});
+  const currentRoom = ref(null);
+  const isLoading = ref(false);
+  const isConnected = ref(false);
+  const messagesMeta = ref({});
+
+  const RECONNECT_DELAY = 1000;
+
+  // ActionCable connection
+  let subscription = null;
+  let subscriptionKey = null;
+  let reconnectTimer = null;
+  let consumer = null;
+  let ownsConsumer = false;
+  
+  // Health check: track when we send vs receive messages
+  let lastSentMessageTime = 0;
+  let lastReceivedMessageTime = Date.now();
+  let messageHealthCheckInterval = null;
+  
+  // Fallback polling when WebSocket is not working
+  let pollingInterval = null;
+  let isPollingActive = false;
+
+  // Getters do store
+  const currentUser = computed(() => store.getters.getCurrentUser);
+  const currentAccountId = computed(() => store.getters.getCurrentAccountId);
+
+  // Carregar salas de chat
+  const loadRooms = async () => {
+    try {
+      isLoading.value = true;
+      const response = await internalChatAPI.getRooms();
+      const payload = response.data || {};
+
+      rooms.value = {
+        general: payload.general || rooms.value.general || null,
+        teams: Array.isArray(payload.teams) ? payload.teams : [],
+        direct_messages: Array.isArray(payload.direct_messages) ? payload.direct_messages : [],
+      };
+    } catch (error) {
+      console.error('❌ Failed to load internal chat rooms:', error);
+    } finally {
+      isLoading.value = false;
+      ensureSubscription();
+    }
+  };
+
+  // Carregar mensagens de uma sala
+  const loadMessages = async (roomType, roomId) => {
+    try {
+      console.log('📥 loadMessages called:', { roomType, roomId });
+      console.log('📥 roomType type:', typeof roomType, 'value:', roomType);
+      console.log('📥 roomId type:', typeof roomId, 'value:', roomId);
+      
+      if (typeof roomType !== 'string' || !roomType) {
+        console.error('❌ Invalid roomType (must be string):', roomType);
+        return;
+      }
+      
+      // For general chat, roomId can be null/undefined
+      // For team/direct chat, roomId must be valid
+      if (roomType !== 'general' && (roomId === undefined || roomId === null)) {
+        console.error('❌ Invalid roomId for', roomType, ':', roomId);
+        return;
+      }
+      
+      isLoading.value = true;
+      const response = await internalChatAPI.getMessages({ roomType, roomId });
+      console.log('📥 loadMessages response:', response.data);
+      const { data: messageList = [], meta = {} } = response.data || {};
+      console.log('📥 Loaded', messageList.length, 'messages');
+      messages.value = Array.isArray(messageList) ? messageList : [];
+      messagesMeta.value = meta;
+    } catch (error) {
+      console.error('❌ Failed to load internal chat messages:', error);
+      console.error('❌ Error details:', error.response?.data);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
+  const ensureMessagesCollection = () => {
+    if (!Array.isArray(messages.value)) {
+      messages.value = [];
+    }
+  };
+
+  const upsertMessage = message => {
+    if (!message || !message.id) {
+      return;
+    }
+
+    ensureMessagesCollection();
+
+    const index = messages.value.findIndex(item => item.id === message.id);
+    if (index === -1) {
+      messages.value.push(message);
+    } else {
+      messages.value.splice(index, 1, message);
+    }
+  };
+
+  const typeMapping = {
+    0: 'general',
+    1: 'team',
+    2: 'direct',
+  };
+
+  const resolveRoomType = value => {
+    if (value === null || value === undefined) return null;
+    if (typeof value === 'number') {
+      return typeMapping[value] || null;
+    }
+    return value;
+  };
+
+  const normalizeRoom = (room = {}, fallbackType = 'direct') => {
+    const rawType = resolveRoomType(room.room_type ?? room.type);
+    const roomType = rawType || fallbackType;
+    let identifier = room.identifier;
+
+    if (!identifier) {
+      if (roomType === 'general') {
+        identifier = 'general';
+      } else if (roomType === 'team') {
+        identifier = room.team_id || room.id;
+      } else if (roomType === 'direct') {
+        identifier = room.target_user_id || room.id;
+      } else {
+        identifier = room.id;
+      }
+    }
+    const roomId = room.room_id ?? room.id ?? null;
+
+    return {
+      ...room,
+      room_type: roomType,
+      identifier,
+      room_id: roomId,
+    };
+  };
+
+  const cableURL = () => {
+    const { websocketURL = '' } = window.chatwootConfig || {};
+    return websocketURL ? `${websocketURL}/cable` : undefined;
+  };
+
+  const scheduleReconnect = () => {
+    if (reconnectTimer) {
+      return;
+    }
+
+    console.log('⏱️ Scheduling reconnect in 1 second...');
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = null;
+      console.log('🔄 Reconnect timer fired, calling ensureSubscription(true)...');
+      ensureSubscription(true);
+    }, RECONNECT_DELAY);
+  };
+
+  // Start polling fallback when WebSocket is not working
+  const startPollingFallback = () => {
+    if (isPollingActive) {
+      console.log('⏱️ Polling already active');
+      return;
+    }
+
+    console.log('⏱️ Starting polling fallback (every 3s)...');
+    isPollingActive = true;
+
+    pollingInterval = setInterval(() => {
+      if (currentRoom.value && !isConnected.value) {
+        console.log('🔄 Polling: Fetching latest messages...');
+        console.log('🔄 currentRoom.value:', JSON.stringify(currentRoom.value));
+        const room = normalizeRoom(currentRoom.value);
+        console.log('🔄 normalized room:', JSON.stringify(room));
+        const roomId = room.room_id || room.id || room.identifier;
+        const roomType = room.room_type;
+        console.log('🔄 Extracted roomType:', typeof roomType, roomType);
+        console.log('🔄 Extracted roomId:', typeof roomId, roomId);
+        loadMessages(roomType, roomId);
+      } else if (isConnected.value) {
+        // Se reconectou, para o polling
+        console.log('✅ Reconnected during polling, stopping fallback');
+        stopPollingFallback();
+      }
+    }, 3000); // Poll every 3 seconds
+  };
+
+  // Stop polling fallback when WebSocket reconnects
+  const stopPollingFallback = () => {
+    if (!isPollingActive) {
+      return;
+    }
+
+    console.log('⏹️ Stopping polling fallback');
+    isPollingActive = false;
+
+    if (pollingInterval) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
+    }
+  };
+
+  const ensureSubscription = (force = false) => {
+    console.log('🔌 [ENSURE] Called with force:', force);
+    
+    const accountId = currentAccountId.value;
+    if (!accountId) {
+      console.warn('⚠️ [ENSURE] No account ID');
+      return;
+    }
+
+    if (reconnectTimer) {
+      console.log('🔌 [ENSURE] Clearing reconnect timer');
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+
+    const user = currentUser.value;
+    if (!user?.id || !user?.pubsub_token) {
+      console.warn('⚠️ [ENSURE] No user or pubsub_token');
+      return;
+    }
+
+    const key = `${accountId}:${user.id}:${user.pubsub_token}`;
+    console.log('🔌 [ENSURE] Current state:', {
+      hasSubscription: !!subscription,
+      subscriptionKey,
+      newKey: key,
+      isConnected: isConnected.value,
+      force
+    });
+
+    // Se force=true, sempre recria subscription
+    if (force) {
+      console.log('🔄 [ENSURE] Force=true, will recreate subscription');
+      if (subscription) {
+        try {
+          subscription.unsubscribe();
+        } catch (e) {
+          console.error('❌ [ENSURE] Error unsubscribing on force:', e);
+        }
+        subscription = null;
+        subscriptionKey = null;
+      }
+    } else {
+      // Verificações normais quando não é force
+      if (subscription && subscriptionKey === key && isConnected.value) {
+        console.log('✅ [ENSURE] Already subscribed and connected with same key');
+        return;
+      }
+
+      // Se tem subscription com mesma key mas não está conectado, força reconexão
+      if (subscription && subscriptionKey === key && !isConnected.value) {
+        console.log('⚠️ [ENSURE] Same key but disconnected, forcing reconnection');
+        try {
+          subscription.unsubscribe();
+        } catch (e) {
+          console.error('❌ [ENSURE] Error unsubscribing:', e);
+        }
+        subscription = null;
+        subscriptionKey = null;
+      }
+
+      if (subscription) {
+        console.log('🔄 [ENSURE] Unsubscribing old subscription (different key)');
+        try {
+          subscription.unsubscribe();
+        } catch (e) {
+          console.error('❌ [ENSURE] Error unsubscribing old:', e);
+        }
+        subscription = null;
+      }
+    }
+
+    console.log('🔌 [ENSURE] Creating new subscription...');
+
+    let cable = window.App?.cable;
+    if (cable) {
+      console.log('✅ Using existing window.App.cable');
+      ownsConsumer = false;
+    } else {
+      if (!consumer) {
+        console.log('🔌 Creating new ActionCable consumer');
+        consumer = createConsumer(cableURL());
+      }
+      cable = consumer;
+      ownsConsumer = true;
+    }
+
+    if (!cable) {
+      console.warn('⚠️ No ActionCable consumer available for internal chat');
+      return;
+    }
+
+    const params = {
+      channel: 'InternalChatChannel',
+      account_id: accountId,
+    };
+
+    params.user_id = user.id;
+    params.pubsub_token = user.pubsub_token;
+
+    console.log('📡 Creating subscription with params:', params);
+
+    // Timeout para detectar se conexão não conecta em 10 segundos
+    const connectionTimeout = setTimeout(() => {
+      if (!isConnected.value) {
+        console.error('❌ Connection timeout! WebSocket failed to connect in 10s');
+        console.error('❌ Ensuring polling fallback is active...');
+        if (!isPollingActive) {
+          startPollingFallback();
+        }
+      }
+    }, 10000);
+
+    subscription = cable.subscriptions.create(
+      params,
+      {
+        connected() {
+          console.log('✅ Internal chat cable connected');
+          
+          // Limpar timeout de conexão
+          clearTimeout(connectionTimeout);
+          
+          console.log('✅ Setting isConnected = true');
+          isConnected.value = true;
+          lastReceivedMessageTime = Date.now();
+          
+          // Stop polling fallback if it was active
+          stopPollingFallback();
+          
+          // Recarregar mensagens da sala atual após reconexão
+          if (currentRoom.value) {
+            console.log('🔄 Reconnected! Reloading messages for current room...');
+            setTimeout(() => {
+              console.log('🔄 currentRoom.value:', JSON.stringify(currentRoom.value));
+              const room = normalizeRoom(currentRoom.value);
+              console.log('🔄 normalized room:', JSON.stringify(room));
+              const roomId = room.room_id || room.id || room.identifier;
+              const roomType = room.room_type;
+              console.log('🔄 Extracted roomType:', typeof roomType, roomType);
+              console.log('🔄 Extracted roomId:', typeof roomId, roomId);
+              loadMessages(roomType, roomId);
+            }, 500);
+          }
+          
+          // Health check DESATIVADO - estava causando reconexões desnecessárias
+          console.log('✅ Connection established (health check disabled)');
+        },
+
+        disconnected() {
+          console.log('❌ Internal chat cable disconnected');
+          isConnected.value = false;
+          subscription = null;
+          subscriptionKey = null;
+          
+          if (messageHealthCheckInterval) {
+            clearInterval(messageHealthCheckInterval);
+            messageHealthCheckInterval = null;
+          }
+          
+          scheduleReconnect();
+        },
+
+        received(data) {
+          console.log('📩 Internal chat payload received:', data);
+          lastReceivedMessageTime = Date.now();
+          
+          if (data.type === 'new_message' && data.message) {
+            if (!currentRoom.value) {
+              console.warn('⚠️ No current room selected, ignoring message');
+              return;
+            }
+
+            console.log('🔍 Current room:', {
+              room_id: currentRoom.value.room_id,
+              room_type: currentRoom.value.room_type,
+              identifier: currentRoom.value.identifier
+            });
+            
+            console.log('🔍 Incoming message:', {
+              room_id: data.message.room_id,
+              chat_type: data.chat_type,
+              chat_id: data.chat_id
+            });
+
+            const incomingRoomId = data.message.room_id;
+            const currentRoomId = currentRoom.value.room_id;
+            const incomingRoomType = data.chat_type;
+            const currentRoomType = currentRoom.value.room_type;
+
+            // Verificações de match
+            const matchesRoomType = String(currentRoomType) === String(incomingRoomType);
+            const matchesRoomId = !currentRoomId || !incomingRoomId || 
+                                  String(currentRoomId) === String(incomingRoomId);
+
+            console.log('🔍 Match results:', {
+              matchesRoomId,
+              matchesRoomType,
+              incomingRoomType,
+              currentRoomType,
+              incomingRoomId,
+              currentRoomId
+            });
+
+            // Aceita mensagem se:
+            // 1. O tipo (room_type) é o mesmo E
+            // 2. Se houver room_id em ambos, eles devem ser iguais (senão aceita)
+            if (matchesRoomType && matchesRoomId) {
+              console.log('✅ Message matches current room, adding to UI');
+              upsertMessage(data.message);
+            } else {
+              console.warn('❌ Message does NOT match current room, ignoring');
+            }
+          }
+        },
+      },
+    );
+
+    subscriptionKey = key;
+  };
+
+  // Enviar mensagem
+  const sendMessage = async content => {
+    const text = (content || '').trim();
+    if (!text || !currentRoom.value) {
+      console.warn('⚠️ Cannot send message: missing content or room');
+      return;
+    }
+
+    console.log('📤 [SEND] Starting send process...');
+    console.log('📤 [SEND] isConnected:', isConnected.value);
+    console.log('📤 [SEND] subscription exists:', !!subscription);
+    console.log('📤 [SEND] currentRoom:', currentRoom.value);
+
+    const normalizedRoom = normalizeRoom(currentRoom.value);
+    const targetRoomId = normalizedRoom.room_id
+      || normalizedRoom.id
+      || normalizedRoom.identifier;
+
+    console.log('📤 [SEND] Normalized room:', {
+      room_type: normalizedRoom.room_type,
+      room_id: normalizedRoom.room_id,
+      targetRoomId
+    });
+
+    const messageData = {
+      roomType: normalizedRoom.room_type,
+      roomId: targetRoomId,
+      content: text,
+    };
+
+    const tempId = `temp-${Date.now()}`;
+    const tempMessage = {
+      id: tempId,
+      content: text,
+      sender: {
+        id: currentUser.value?.id,
+        name: currentUser.value?.name,
+        avatar_url: currentUser.value?.avatar_url,
+      },
+      sender_id: currentUser.value?.id,
+      created_at: new Date().toISOString(),
+      room_id: normalizedRoom.room_id,
+      message_type: 'text',
+      temp: true,
+    };
+
+    console.log('📤 [SEND] Adding temp message to UI:', tempId);
+    upsertMessage(tempMessage);
+
+    // Track that we sent a message
+    lastSentMessageTime = Date.now();
+
+    // Verificar e forçar reconexão se necessário
+    if (!isConnected.value) {
+      console.warn('⚠️ [SEND] NOT CONNECTED! Forcing reconnection...');
+      ensureSubscription(true);
+      // Aguardar um pouco para conectar
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    console.log('📤 [SEND] After check - isConnected:', isConnected.value);
+
+    try {
+      console.log('📤 [SEND] Calling API with:', messageData);
+      const response = await internalChatAPI.sendMessage(messageData);
+      console.log('📤 [SEND] API response:', response.data);
+      
+      const savedMessage = response.data?.data;
+
+      const tempIndex = messages.value.findIndex(message => message.id === tempId);
+      if (tempIndex !== -1) {
+        console.log('📤 Removing temp message');
+        messages.value.splice(tempIndex, 1);
+      }
+
+      if (savedMessage) {
+        console.log('📤 Adding saved message to UI:', savedMessage.id);
+        upsertMessage(savedMessage);
+        if (savedMessage.room_id) {
+          currentRoom.value = {
+            ...normalizedRoom,
+            room_id: savedMessage.room_id,
+          };
+        }
+      }
+
+      console.log('✅ Message sent successfully');
+      return savedMessage;
+    } catch (error) {
+      console.error('❌ Failed to send internal chat message:', error);
+      const tempIndex = messages.value.findIndex(message => message.id === tempId);
+      if (tempIndex !== -1) {
+        messages.value.splice(tempIndex, 1);
+      }
+      return null;
+    }
+  };
+
+  // Criar sala direta
+  const createDirectRoom = async userId => {
+    try {
+      const response = await internalChatAPI.createDirectRoom(userId);
+      
+      // A resposta tem estrutura: response.data = {data: {...}}
+      const room = response.data?.data || response.data;
+
+      if (room && room.id) {
+        const normalizedRoom = normalizeRoom(room, 'direct');
+        currentRoom.value = normalizedRoom;
+        const targetRoomId = normalizedRoom.room_id
+          || normalizedRoom.id
+          || normalizedRoom.identifier;
+
+        await loadMessages(normalizedRoom.room_type, targetRoomId);
+        if (messagesMeta.value?.room_id) {
+          currentRoom.value.room_id = messagesMeta.value.room_id;
+        }
+
+        if (Array.isArray(rooms.value?.direct_messages)) {
+          const existingIndex = rooms.value.direct_messages.findIndex(item => String(item.id) === String(userId));
+          const existingEntry = existingIndex === -1 ? null : rooms.value.direct_messages[existingIndex];
+
+          const identifier = room.target_user_id || userId;
+
+          const partner = (room.participants || []).find(participant => String(participant.id) === String(userId));
+
+          const directEntry = {
+            ...existingEntry,
+            id: userId,
+            room_id: normalizedRoom.room_id,
+            room_type: 'direct',
+            identifier,
+          };
+
+          if (!directEntry.name) {
+            directEntry.name = partner?.name || normalizedRoom.name;
+          }
+
+          if (!directEntry.email && partner?.email) {
+            directEntry.email = partner.email;
+          }
+
+          if (existingIndex === -1) {
+            rooms.value.direct_messages.push(directEntry);
+          } else {
+            rooms.value.direct_messages.splice(existingIndex, 1, {
+              ...directEntry,
+            });
+          }
+        }
+
+        ensureSubscription();
+      } else {
+        console.warn('⚠️ createDirectRoom: No valid room data received');
+      }
+
+      return currentRoom.value;
+    } catch (error) {
+      console.error('❌ createDirectRoom error:', error);
+      return null;
+    }
+  };
+
+  // Selecionar sala atual
+  const selectRoom = async room => {
+    const normalizedRoom = normalizeRoom(room);
+    currentRoom.value = normalizedRoom;
+    const targetRoomId = normalizedRoom.room_id
+      || normalizedRoom.id
+      || normalizedRoom.identifier;
+
+    await loadMessages(normalizedRoom.room_type, targetRoomId);
+    if (messagesMeta.value?.room_id) {
+      currentRoom.value.room_id = messagesMeta.value.room_id;
+    }
+    ensureSubscription();
+  };
+
+  // Desconectar do ActionCable
+  const disconnect = () => {
+    stopPollingFallback();
+    
+    if (messageHealthCheckInterval) {
+      clearInterval(messageHealthCheckInterval);
+      messageHealthCheckInterval = null;
+    }
+    
+    if (subscription) {
+      subscription.unsubscribe();
+      subscription = null;
+    }
+    isConnected.value = false;
+    if (consumer && ownsConsumer) {
+      consumer.disconnect();
+      consumer = null;
+      ownsConsumer = false;
+    }
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
+    subscriptionKey = null;
+  };
+
+  // Lifecycle
+  onMounted(() => {
+    loadRooms();
+    // Conecta apenas uma vez no mount
+    if (currentUser.value && currentAccountId.value) {
+      ensureSubscription();
+    }
+  });
+
+  onUnmounted(() => {
+    disconnect();
+  });
+
+  return {
+    // Estado
+    messages,
+    rooms,
+    currentRoom,
+    isLoading,
+    isConnected,
+
+    // Métodos
+    loadRooms,
+    loadMessages,
+    sendMessage,
+    createDirectRoom,
+    selectRoom,
+    disconnect,
+
+    // Computed
+    currentUser,
+    currentAccountId,
+  };
+}

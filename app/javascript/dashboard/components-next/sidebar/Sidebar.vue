@@ -303,6 +303,11 @@ const menuItems = computed(() => {
       name: 'Internal Chat',
       label: 'Chat Interno',
       icon: 'i-lucide-message-square',
+      getterKeys: {
+        count: 'internalChat/getUnreadTotal',
+      },
+      // Make the count badge red with white text
+      countClass: 'bg-red-600 text-white',
       onClick: toggleInternalChat,
     },
     {

@@ -268,9 +268,14 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
     Rails.logger.info "📡 Broadcasting to channel: #{channel_name}"
     Rails.logger.info "📡 Broadcast data: #{broadcast_data.inspect}"
     
-    ActionCable.server.broadcast(channel_name, broadcast_data)
-    
-    Rails.logger.info "📡 Message broadcasted successfully"
+    begin
+      ActionCable.server.broadcast(channel_name, broadcast_data)
+      Rails.logger.info "📡 Message broadcasted successfully"
+    rescue => broadcast_error
+      Rails.logger.error "❌ Broadcast error (Redis down?): #{broadcast_error.message}"
+      # NÃO retorna erro - mensagem já foi salva no banco
+      # Cliente vai receber mensagem via HTTP e depois via polling/refresh
+    end
 
     render json: { data: serialized_message }, status: :created
   rescue => e
@@ -294,6 +299,12 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
         # Primeiro tenta buscar sala por ID
         room = Current.account.gc_internal_chat_rooms.find_by(id: room_id, room_type: :team)
         if room
+          # 🔒 VALIDAR SE O USUÁRIO ATUAL FAZ PARTE DESTE TEAM
+          is_member = Current.user.teams.exists?(id: room.team_id)
+          unless is_member
+            Rails.logger.warn "⚠️ User #{Current.user.id} is not a member of team #{room.team_id}"
+            return nil
+          end
           Rails.logger.info "🔍 Found team room by ID: #{room.id}"
           return room
         end
@@ -315,6 +326,12 @@ class Api::V1::Accounts::InternalChatController < Api::V1::Accounts::BaseControl
         # Primeiro tenta buscar sala por ID
         room = Current.account.gc_internal_chat_rooms.find_by(id: room_id, room_type: :direct)
         if room
+          # 🔒 VALIDAR SE O USUÁRIO ATUAL É PARTICIPANTE DESTA SALA
+          is_member = room.gc_internal_chat_memberships.exists?(user_id: Current.user.id)
+          unless is_member
+            Rails.logger.warn "⚠️ User #{Current.user.id} is not a member of direct room #{room.id}"
+            return nil
+          end
           Rails.logger.info "🔍 Found direct room by ID: #{room.id}"
           return room
         end
