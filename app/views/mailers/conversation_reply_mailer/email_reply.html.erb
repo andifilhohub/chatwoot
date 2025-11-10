@@ -1,5 +1,5 @@
 <% if @message.content %>
-  <%= ChatwootMarkdownRenderer.new(@message.outgoing_content).render_message %>
+  <%= Genius CloudMarkdownRenderer.new(@message.outgoing_content).render_message %>
 <% end %>
 <% if @large_attachments.present? %>
   <p>Attachments:</p>
