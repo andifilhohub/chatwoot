@@ -8,13 +8,13 @@ import { useMessageContext } from '../provider.js';
 import { useI18n } from 'vue-i18n';
 
 import { BUS_EVENTS } from 'shared/constants/busEvents';
-import { MESSAGE_VARIANTS, ORIENTATION } from '../constants';
+import { MESSAGE_VARIANTS, ORIENTATION, MESSAGE_STATUS } from '../constants';
 
 const props = defineProps({
   hideMeta: { type: Boolean, default: false },
 });
 
-const { variant, orientation, inReplyTo, shouldGroupWithNext } =
+const { variant, orientation, inReplyTo, shouldGroupWithNext, status, scheduleInfo } =
   useMessageContext();
 const { t } = useI18n();
 
@@ -50,16 +50,42 @@ const flexOrientationClass = computed(() => {
   return map[orientation.value];
 });
 
-const messageClass = computed(() => {
-  const classToApply = [varaintBaseMap[variant.value]];
-
+const baseOrientationClasses = computed(() => {
   if (variant.value !== MESSAGE_VARIANTS.ACTIVITY) {
-    classToApply.push(orientationMap[orientation.value]);
-  } else {
-    classToApply.push('rounded-lg');
+    return [orientationMap[orientation.value]];
+  }
+  return ['rounded-lg'];
+});
+
+const scheduledAt = computed(() => scheduleInfo?.value?.scheduledAt);
+
+const isScheduledPending = computed(
+  () => status.value === MESSAGE_STATUS.SCHEDULED && scheduledAt.value
+);
+
+const isScheduledCompleted = computed(() => {
+  if (!scheduledAt.value) return false;
+  return [MESSAGE_STATUS.SENT, MESSAGE_STATUS.DELIVERED, MESSAGE_STATUS.READ].includes(
+    status.value
+  );
+});
+
+const messageClass = computed(() => {
+  if (isScheduledPending.value) {
+    return [
+      'bg-n-amber-3 text-n-amber-12 border border-n-amber-6',
+      ...baseOrientationClasses.value,
+    ];
   }
 
-  return classToApply;
+  if (isScheduledCompleted.value) {
+    return [
+      'bg-n-teal-3 text-n-slate-12 border border-n-amber-6',
+      ...baseOrientationClasses.value,
+    ];
+  }
+
+  return [varaintBaseMap[variant.value], ...baseOrientationClasses.value];
 });
 
 const scrollToMessage = () => {

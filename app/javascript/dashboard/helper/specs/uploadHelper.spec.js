@@ -19,6 +19,7 @@ describe('Upload Helpers', () => {
           file_url: 'https://example.com/fileUrl',
           blob_key: 'blobKey123',
           blob_id: 'blobId456',
+          signed_id: 'signedId789',
         },
       };
 
@@ -36,6 +37,7 @@ describe('Upload Helpers', () => {
         fileUrl: 'https://example.com/fileUrl',
         blobKey: 'blobKey123',
         blobId: 'blobId456',
+        signedId: 'signedId789',
       });
     });
 
@@ -59,6 +61,7 @@ describe('Upload Helpers', () => {
           file_url: 'https://example.com/fileUrl',
           blob_key: 'blobKey123',
           blob_id: 'blobId456',
+          signed_id: 'signedId789',
         },
       };
 
@@ -76,6 +79,7 @@ describe('Upload Helpers', () => {
         fileUrl: 'https://example.com/fileUrl',
         blobKey: 'blobKey123',
         blobId: 'blobId456',
+        signedId: 'signedId789',
       });
     });
 

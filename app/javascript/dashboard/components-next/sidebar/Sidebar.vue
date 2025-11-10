@@ -300,6 +300,13 @@ const menuItems = computed(() => {
       ],
     },
     {
+      name: 'ScheduledMessages',
+      label: t('SIDEBAR.SCHEDULED_MESSAGES'),
+      icon: 'i-lucide-calendar-clock',
+      to: accountScopedRoute('scheduled_messages_index'),
+      activeOn: ['scheduled_messages_index'],
+    },
+    {
       name: 'Internal Chat',
       label: 'Chat Interno',
       icon: 'i-lucide-message-square',

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_09_19_124755) do
+ActiveRecord::Schema[7.1].define(version: 2025_10_30_094901) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -1050,6 +1050,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_09_19_124755) do
     t.text "processed_message_content"
     t.jsonb "sentiment", default: {}
     t.jsonb "schedule_info"
+    t.datetime "scheduled_at"
     t.index "((additional_attributes -> 'campaign_id'::text))", name: "index_messages_on_additional_attributes_campaign_id", using: :gin
     t.index ["account_id", "content_type", "created_at"], name: "idx_messages_account_content_created"
     t.index ["account_id", "created_at", "message_type"], name: "index_messages_on_account_created_type"
@@ -1059,6 +1060,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_09_19_124755) do
     t.index ["conversation_id", "account_id", "message_type", "created_at"], name: "index_messages_on_conversation_account_type_created"
     t.index ["conversation_id"], name: "index_messages_on_conversation_id"
     t.index ["created_at"], name: "index_messages_on_created_at"
+    t.index ["inbox_id", "scheduled_at"], name: "index_messages_on_inbox_id_and_scheduled_at"
     t.index ["inbox_id"], name: "index_messages_on_inbox_id"
     t.index ["sender_type", "sender_id"], name: "index_messages_on_sender_type_and_sender_id"
     t.index ["source_id"], name: "index_messages_on_source_id"
@@ -1209,7 +1211,14 @@ ActiveRecord::Schema[7.1].define(version: 2025_09_19_124755) do
     t.string "status"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.datetime "scheduled_at"
+    t.datetime "dispatched_at"
+    t.string "timezone"
+    t.jsonb "metadata", default: {}, null: false
+    t.text "error_message"
     t.index ["message_id"], name: "index_scheduled_message_jobs_on_message_id"
+    t.index ["scheduled_at"], name: "index_scheduled_message_jobs_on_scheduled_at"
+    t.index ["status"], name: "index_scheduled_message_jobs_on_status"
   end
 
   create_table "sla_events", force: :cascade do |t|

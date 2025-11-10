@@ -1,5 +1,5 @@
 [Unit]
-Description=Chatwoot Web Server
+Description=Genius Cloud Web Server
 Wants=chatwoot-web.1.service
 
 [Install]

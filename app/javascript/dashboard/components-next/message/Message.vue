@@ -75,7 +75,7 @@ import ContextMenu from 'dashboard/modules/conversations/components/MessageConte
 
 /**
  * @typedef {Object} Props
- * @property {('sent'|'delivered'|'read'|'failed'|'progress')} status - The delivery status of the message
+ * @property {('sent'|'delivered'|'read'|'failed'|'progress'|'scheduled')} status - The delivery status of the message
  * @property {ContentAttributes} [contentAttributes={}] - Additional attributes of the message content
  * @property {Attachment[]} [attachments=[]] - The attachments associated with the message
  * @property {Sender|null} [sender=null] - The sender information
@@ -129,6 +129,7 @@ const props = defineProps({
   senderId: { type: Number, default: null },
   senderType: { type: String, default: null },
   sourceId: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties
+  scheduleInfo: { type: Object, default: null },
 });
 
 const contextMenuPosition = ref({});

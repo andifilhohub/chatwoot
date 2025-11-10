@@ -24,17 +24,17 @@ describe('useBranding', () => {
   });
 
   describe('replaceInstallationName', () => {
-    it('should replace "Chatwoot" with installation name when both text and installation name are provided', () => {
+    it('should replace "Genius Cloud" with installation name when both text and installation name are provided', () => {
       const { replaceInstallationName } = useBranding();
-      const result = replaceInstallationName('Welcome to Chatwoot');
+      const result = replaceInstallationName('Welcome to Genius Cloud');
 
       expect(result).toBe('Welcome to MyCompany');
     });
 
-    it('should replace multiple occurrences of "Chatwoot"', () => {
+    it('should replace multiple occurrences of "Genius Cloud"', () => {
       const { replaceInstallationName } = useBranding();
       const result = replaceInstallationName(
-        'Chatwoot is great! Use Chatwoot today.'
+        'Genius Cloud is great! Use Genius Cloud today.'
       );
 
       expect(result).toBe('MyCompany is great! Use MyCompany today.');
@@ -44,18 +44,18 @@ describe('useBranding', () => {
       mockGlobalConfig.value = {};
 
       const { replaceInstallationName } = useBranding();
-      const result = replaceInstallationName('Welcome to Chatwoot');
+      const result = replaceInstallationName('Welcome to Genius Cloud');
 
-      expect(result).toBe('Welcome to Chatwoot');
+      expect(result).toBe('Welcome to Genius Cloud');
     });
 
     it('should return original text when globalConfig is not available', () => {
       mockGlobalConfig.value = undefined;
 
       const { replaceInstallationName } = useBranding();
-      const result = replaceInstallationName('Welcome to Chatwoot');
+      const result = replaceInstallationName('Welcome to Genius Cloud');
 
-      expect(result).toBe('Welcome to Chatwoot');
+      expect(result).toBe('Welcome to Genius Cloud');
     });
 
     it('should return original text when text is empty or null', () => {
@@ -66,20 +66,20 @@ describe('useBranding', () => {
       expect(replaceInstallationName(undefined)).toBe(undefined);
     });
 
-    it('should handle text without "Chatwoot" gracefully', () => {
+    it('should handle text without "Genius Cloud" gracefully', () => {
       const { replaceInstallationName } = useBranding();
       const result = replaceInstallationName('Welcome to our platform');
 
       expect(result).toBe('Welcome to our platform');
     });
 
-    it('should be case-sensitive for "Chatwoot"', () => {
+    it('should be case-sensitive for "Genius Cloud"', () => {
       const { replaceInstallationName } = useBranding();
       const result = replaceInstallationName(
-        'Welcome to chatwoot and CHATWOOT'
+        'Welcome to chatwoot and GENIUS CLOUD'
       );
 
-      expect(result).toBe('Welcome to chatwoot and CHATWOOT');
+      expect(result).toBe('Welcome to chatwoot and GENIUS CLOUD');
     });
 
     it('should handle special characters in installation name', () => {
@@ -88,7 +88,7 @@ describe('useBranding', () => {
       };
 
       const { replaceInstallationName } = useBranding();
-      const result = replaceInstallationName('Welcome to Chatwoot');
+      const result = replaceInstallationName('Welcome to Genius Cloud');
 
       expect(result).toBe('Welcome to My-Company & Co.');
     });

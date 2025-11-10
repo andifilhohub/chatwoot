@@ -18,6 +18,13 @@ const isOwnMessage = message => {
   return message.sender_id === props.currentUser?.id;
 };
 
+const getInitials = (name) => {
+  if (!name) return '?';
+  const words = name.split(' ').filter(w => w.length > 0);
+  if (words.length === 1) return words[0].charAt(0).toUpperCase();
+  return (words[0].charAt(0) + words[words.length - 1].charAt(0)).toUpperCase();
+};
+
 const formatTime = timestamp => {
   if (!timestamp) return '';
   const date = new Date(timestamp);
@@ -82,7 +89,7 @@ onUnmounted(() => {
     <div
       v-else
       ref="container"
-      class="flex-1 overflow-y-auto space-y-3 p-4"
+      class="flex-1 overflow-y-auto space-y-3 p-4 internal-chat-messages-scroll"
     >
       <div
         v-for="message in messages"
@@ -93,10 +100,16 @@ onUnmounted(() => {
         <!-- Avatar -->
         <div class="flex-shrink-0">
           <img
-            :src="message.sender.avatar_url || '/assets/default-avatar.png'"
+            v-if="message.sender.avatar_url"
+            :src="message.sender.avatar_url"
             :alt="message.sender.name"
             class="w-8 h-8 rounded-full"
+            @error="$event.target.style.display = 'none'"
           />
+
+          <div v-else class="w-8 h-8 rounded-full bg-woot-600 flex items-center justify-center text-white text-sm font-medium">
+            {{ getInitials(message.sender?.name || '') }}
+          </div>
         </div>
 
         <!-- Message Content -->
@@ -104,7 +117,7 @@ onUnmounted(() => {
           class="max-w-xs lg:max-w-md px-4 py-2 rounded-lg"
           :class="
             isOwnMessage(message)
-              ? 'bg-blue-600 text-white'
+              ? 'bg-woot-600 text-white'
               : 'bg-n-slate-3 text-n-slate-12'
           "
         >
@@ -124,7 +137,7 @@ onUnmounted(() => {
           <!-- Timestamp -->
           <div
             class="text-xs mt-1 opacity-60"
-            :class="isOwnMessage(message) ? 'text-blue-100' : 'text-n-slate-10'"
+            :class="isOwnMessage(message) ? 'text-woot-100' : 'text-n-slate-10'"
           >
             {{ formatTime(message.created_at) }}
           </div>
@@ -133,9 +146,9 @@ onUnmounted(() => {
     </div>
 
     <!-- Scroll to bottom button -->
-    <div v-if="showScrollButton" class="absolute bottom-4 right-4">
+      <div v-if="showScrollButton" class="absolute bottom-4 right-4">
       <button
-        class="bg-blue-600 text-white p-2 rounded-full shadow-lg hover:bg-blue-700 transition-colors"
+        class="bg-woot-600 text-white p-2 rounded-full shadow-lg hover:bg-woot-700 transition-colors"
         @click="scrollToBottom"
       >
         <svg

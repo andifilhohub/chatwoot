@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-# Load GeniusCloud customizations without touching core Chatwoot files.
+# Load GeniusCloud customizations without touching core Genius Cloud files.
 # GeniusCloud-modify directory was removed
 genius_cloud_app_path = nil
 

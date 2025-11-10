@@ -4,7 +4,7 @@
 # display_name: the name to be used in the UI
 # enabled: whether the feature is enabled by default
 # help_url: the url to the help center article
-# chatwoot_internal: whether the feature is internal to Chatwoot and should not be shown in the UI for other self hosted installations
+# chatwoot_internal: whether the feature is internal to Genius Cloud and should not be shown in the UI for other self hosted installations
 # deprecated: purpose of feature flag is done, no need to show it in the UI anymore
 - name: inbound_emails
   display_name: Inbound Emails
@@ -145,14 +145,14 @@
   enabled: false
   premium: true
 - name: chatwoot_v4
-  display_name: Chatwoot V4
+  display_name: Genius Cloud V4
   enabled: true
 - name: report_v4
   display_name: Report V4
   enabled: true
   deprecated: true
 - name: contact_chatwoot_support_team
-  display_name: Contact Chatwoot Support Team
+  display_name: Contact Genius Cloud Support Team
   enabled: true
   chatwoot_internal: true
 - name: shopify_integration

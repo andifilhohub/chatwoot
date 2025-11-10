@@ -1,4 +1,4 @@
-# 📚 Arquitetura Completa do Chat Interno - Chatwoot
+# 📚 Arquitetura Completa do Chat Interno - Genius Cloud
 
 ## 📋 Índice
 1. [Visão Geral](#visão-geral)
@@ -12,7 +12,7 @@
 
 ## 🎯 Visão Geral
 
-O **Chat Interno** é um sistema de comunicação em tempo real dentro do Chatwoot que permite:
+O **Chat Interno** é um sistema de comunicação em tempo real dentro do Genius Cloud que permite:
 - 💬 Chat geral da conta (todos os agentes)
 - 👥 Chats de equipe (apenas membros do time)
 - 🔒 Conversas diretas 1:1 entre agentes
@@ -1128,7 +1128,7 @@ watch(() => messages.value.length, () => { ... });
 
 ## 🎯 Conclusão
 
-O Chat Interno do Chatwoot é um sistema robusto que combina:
+O Chat Interno do Genius Cloud é um sistema robusto que combina:
 
 - ✅ **Performance**: Optimistic updates + Watch inteligente
 - ✅ **Real-time**: ActionCable com canais separados

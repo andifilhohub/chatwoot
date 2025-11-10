@@ -12,20 +12,10 @@ class InternalChatChannel < ApplicationCable::Channel
       return
     end
     
-    # Inscrever no canal geral (para general e direct messages)
-    general_channel = general_stream_name
-    stream_from general_channel
-    Rails.logger.info "🔌 InternalChatChannel: Subscribed to general: #{general_channel}"
+    # Para teste, aceita qualquer conexão
+    stream_from stream_name
     
-    # Inscrever nos canais de cada team que o usuário faz parte
-    user_teams = current_user.teams.where(account_id: current_account.id)
-    user_teams.each do |team|
-      team_channel = team_stream_name(team.id)
-      stream_from team_channel
-      Rails.logger.info "🔌 InternalChatChannel: Subscribed to team: #{team_channel}"
-    end
-    
-    Rails.logger.info "✅ InternalChatChannel: Total subscriptions: 1 general + #{user_teams.count} teams"
+    Rails.logger.info "🔌 InternalChatChannel: Subscribed to #{stream_name}"
   end
 
   def unsubscribed
@@ -73,24 +63,19 @@ class InternalChatChannel < ApplicationCable::Channel
       room_id: room.id
     }
 
-    # Broadcast - usar o room.team_id quando for team, não o room_id do parâmetro
-    broadcast_channel = determine_broadcast_channel(room.room_type.to_s, room.team_id)
-    
+    # Broadcast
     ActionCable.server.broadcast(
-      broadcast_channel,
+      stream_name,
       {
         type: 'new_message',
         message: serialized_message,
-        chat_type: room_type,  # Adicionar para o frontend
-        chat_id: room_id,      # Adicionar para o frontend
         timestamp: message.created_at.iso8601
       }
     )
 
-    Rails.logger.info "📡 ActionCable: Message broadcasted to #{broadcast_channel}"
+    Rails.logger.info "📡 ActionCable: Message broadcasted"
   rescue => e
     Rails.logger.error "❌ ActionCable Error: #{e.message}"
-    Rails.logger.error e.backtrace.join("\n")
   end
 
   private
@@ -139,32 +124,8 @@ class InternalChatChannel < ApplicationCable::Channel
     Rails.logger.warn "⚠️ STI Error in find_user_by_pubsub_token: #{e.message}"
     nil
   end
-  
-  # Nome do canal geral (para general e direct messages)
-  def general_stream_name
-    "internal_chat_#{current_account.id}"
-  end
-  
-  # Nome do canal específico de um team
-  def team_stream_name(team_id)
-    "internal_chat_#{current_account.id}_team_#{team_id}"
-  end
-  
-  # Determina qual canal usar para o broadcast baseado no tipo de sala
-  def determine_broadcast_channel(room_type, team_id)
-    case room_type.to_s
-    when 'team'
-      # Para mensagens de team, usa canal específico do team
-      team_stream_name(team_id)
-    else
-      # Para general e direct, usa canal geral da conta
-      general_stream_name
-    end
-  end
-
   def stream_name
-    # Método mantido para compatibilidade, mas não é mais usado
-    general_stream_name
+    "internal_chat_#{current_account.id}"
   end
 
   def find_or_create_room(room_type, room_id)
@@ -174,17 +135,6 @@ class InternalChatChannel < ApplicationCable::Channel
     when 'general'
       room = GcInternalChatRoom.find_or_create_general(current_account)
       Rails.logger.info "🔍 ActionCable: General room: #{room&.id}"
-      room
-    when 'team'
-      # Para team, room_id é o ID do team
-      team = current_account.teams.find_by(id: room_id)
-      unless team
-        Rails.logger.error "❌ ActionCable: Team not found: #{room_id}"
-        return nil
-      end
-      
-      room = GcInternalChatRoom.find_or_create_team_room(team)
-      Rails.logger.info "🔍 ActionCable: Team room: #{room&.id} for team #{team.name}"
       room
     when 'direct'
       # Para direct, room_id pode ser o ID da sala ou do usuário alvo

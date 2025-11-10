@@ -98,6 +98,14 @@ export default {
       type: Boolean,
       default: false,
     },
+    isScheduleActive: {
+      type: Boolean,
+      default: false,
+    },
+    scheduleLabel: {
+      type: String,
+      default: '',
+    },
     conversationId: {
       type: Number,
       required: true,
@@ -117,6 +125,14 @@ export default {
     conversationType: {
       type: String,
       default: '',
+    },
+    onOpenSchedule: {
+      type: Function,
+      default: () => {},
+    },
+    onClearSchedule: {
+      type: Function,
+      default: () => {},
     },
   },
   emits: [
@@ -329,6 +345,29 @@ export default {
         sm
         :label="recordingAudioDurationText"
         @click="toggleAudioRecorderPlayPause"
+      />
+      <NextButton
+        v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.SCHEDULE.BUTTON')"
+        icon="i-ph-calendar"
+        :faded="!isScheduleActive"
+        :color="isScheduleActive ? 'amber' : null"
+        slate
+        sm
+        justify="start"
+        class="max-w-[200px]"
+        :label="scheduleLabel"
+        :disabled="isOnPrivateNote"
+        @click="onOpenSchedule"
+      />
+      <NextButton
+        v-if="isScheduleActive"
+        v-tooltip.top-end="$t('CONVERSATION.REPLYBOX.SCHEDULE.CLEAR')"
+        icon="i-ph-x-circle"
+        slate
+        faded
+        sm
+        :disabled="isOnPrivateNote"
+        @click="onClearSchedule"
       />
       <NextButton
         v-if="showMessageSignatureButton"

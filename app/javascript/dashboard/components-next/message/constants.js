@@ -36,6 +36,7 @@ export const MESSAGE_STATUS = {
   READ: 'read',
   FAILED: 'failed',
   PROGRESS: 'progress',
+  SCHEDULED: 'scheduled',
 };
 
 export const ATTACHMENT_TYPES = {

@@ -8,6 +8,7 @@ import { useInbox } from 'dashboard/composables/useInbox';
 import { useMessageContext } from './provider.js';
 
 import { MESSAGE_STATUS, MESSAGE_TYPES } from './constants';
+import { useI18n } from 'vue-i18n';
 
 const {
   isAFacebookInbox,
@@ -29,11 +30,48 @@ const {
   sourceId,
   messageType,
   contentAttributes,
+  scheduleInfo,
 } = useMessageContext();
+
+const { t } = useI18n();
 
 const readableTime = computed(() =>
   messageTimestamp(createdAt.value, 'LLL d, h:mm a')
 );
+
+const scheduledTimestamp = computed(() => {
+  const iso = scheduleInfo.value?.scheduledAt;
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return Math.floor(date.getTime() / 1000);
+});
+
+const dispatchedTimestamp = computed(() => {
+  const iso = scheduleInfo.value?.dispatchedAt;
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return Math.floor(date.getTime() / 1000);
+});
+
+const scheduledTimezone = computed(
+  () => scheduleInfo.value?.scheduledTimezone
+);
+
+const scheduledLabel = computed(() => {
+  if (!scheduledTimestamp.value) return '';
+  const base = messageTimestamp(scheduledTimestamp.value, 'LLL d, h:mm a');
+  if (!scheduledTimezone.value) {
+    return base;
+  }
+  return `${base} (${scheduledTimezone.value})`;
+});
+
+const dispatchedLabel = computed(() => {
+  if (!dispatchedTimestamp.value) return '';
+  return messageTimestamp(dispatchedTimestamp.value, 'LLL d, h:mm a');
+});
 
 const showStatusIndicator = computed(() => {
   if (isPrivate.value) return false;
@@ -41,6 +79,7 @@ const showStatusIndicator = computed(() => {
   if (status.value === MESSAGE_STATUS.FAILED) return false;
   // Don't show status for deleted messages
   if (contentAttributes.value?.deleted) return false;
+  if (status.value === MESSAGE_STATUS.SCHEDULED) return false;
 
   if (messageType.value === MESSAGE_TYPES.OUTGOING) return true;
   if (messageType.value === MESSAGE_TYPES.TEMPLATE) return true;
@@ -119,15 +158,62 @@ const statusToShow = computed(() => {
 
   return MESSAGE_STATUS.PROGRESS;
 });
+
+const shouldShowScheduleMeta = computed(() => !!scheduledTimestamp.value);
+
+const scheduleMetaText = computed(() => {
+  if (!scheduledTimestamp.value) return '';
+  if (
+    status.value === MESSAGE_STATUS.SCHEDULED ||
+    (!dispatchedTimestamp.value && status.value === MESSAGE_STATUS.PROGRESS)
+  ) {
+    return t('CONVERSATION.REPLYBOX.SCHEDULE.META_PENDING', {
+      datetime: scheduledLabel.value,
+    });
+  }
+
+  if (dispatchedTimestamp.value) {
+    return t('CONVERSATION.REPLYBOX.SCHEDULE.META_SENT', {
+      scheduledAt: scheduledLabel.value,
+      sentAt: dispatchedLabel.value,
+    });
+  }
+
+  return t('CONVERSATION.REPLYBOX.SCHEDULE.META_PENDING', {
+    datetime: scheduledLabel.value,
+  });
+});
+
+const scheduleMetaColorClass = computed(() => {
+  if (!scheduledTimestamp.value) return '';
+  if (status.value === MESSAGE_STATUS.SCHEDULED) {
+    return 'text-n-amber-11';
+  }
+  if (dispatchedTimestamp.value) {
+    return 'text-n-teal-11';
+  }
+  return 'text-n-slate-11';
+});
 </script>
 
 <template>
-  <div class="text-xs flex items-center gap-1.5">
-    <div class="inline">
-      <time class="inline">{{ readableTime }}</time>
+  <div class="text-xs flex flex-col gap-1">
+    <div
+      v-if="shouldShowScheduleMeta"
+      class="flex items-center gap-1.5"
+      :class="scheduleMetaColorClass"
+    >
+      <Icon icon="i-ph-calendar" class="size-3" />
+      <span class="leading-none">{{ scheduleMetaText }}</span>
     </div>
-    <Icon v-if="isPrivate" icon="i-lucide-lock-keyhole" class="size-3" />
-    <MessageStatus v-if="showStatusIndicator" :status="statusToShow" />
+    <div class="flex items-center gap-1.5 text-n-slate-11">
+      <div class="inline">
+        <time class="inline">{{ readableTime }}</time>
+      </div>
+      <Icon v-if="isPrivate" icon="i-lucide-lock-keyhole" class="size-3" />
+      <MessageStatus v-if="showStatusIndicator" :status="statusToShow" />
+    </div>
   </div>
 </template>
+
 `

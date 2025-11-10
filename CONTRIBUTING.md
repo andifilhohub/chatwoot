@@ -1,4 +1,4 @@
-# Contributing to Chatwoot
+# Contributing to Genius Cloud
 
 Thanks for taking the time to contribute! :tada::+1:
 

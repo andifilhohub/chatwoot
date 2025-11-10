@@ -1,8 +1,8 @@
 {
   "openapi": "3.0.4",
   "info": {
-    "title": "Chatwoot",
-    "description": "This is the API documentation for Chatwoot server.",
+    "title": "Genius Cloud",
+    "description": "This is the API documentation for Genius Cloud server.",
     "version": "1.1.0",
     "termsOfService": "https://www.chatwoot.com/terms-of-service/",
     "contact": {
@@ -3845,7 +3845,7 @@
                         "id": 37,
                         "avatar_url": "https://example.com/avatar.png",
                         "channel_id": 1,
-                        "name": "Chatwoot",
+                        "name": "Genius Cloud",
                         "channel_type": "Channel::WebWidget",
                         "greeting_enabled": true,
                         "widget_color": "#1F93FF",
@@ -3954,7 +3954,7 @@
                     "account_id": 123,
                     "inbox": {
                       "id": 123,
-                      "name": "Chatwoot",
+                      "name": "Genius Cloud",
                       "website_url": "chatwoot.com",
                       "channel_type": "Channel::WebWidget",
                       "avatar_url": "https://example.com/avatar.png",
@@ -3971,7 +3971,7 @@
                       "enable_email_collect": true,
                       "csat_survey_enabled": true,
                       "timezone": "America/Los_Angeles",
-                      "business_name": "Chatwoot",
+                      "business_name": "Genius Cloud",
                       "hmac_mandatory": true
                     },
                     "logo": {
@@ -8626,7 +8626,7 @@
               "busy",
               "offline"
             ],
-            "description": "The availability status of the agent computed by Chatwoot."
+            "description": "The availability status of the agent computed by Genius Cloud."
           },
           "auto_offline": {
             "type": "boolean",
@@ -9150,7 +9150,7 @@
             "properties": {
               "latest_chatwoot_version": {
                 "type": "string",
-                "description": "Latest version of Chatwoot available",
+                "description": "Latest version of Genius Cloud available",
                 "example": "3.0.0"
               },
               "subscribed_features": {
@@ -10120,7 +10120,7 @@
                     "type": "object",
                     "description": "The processed param values for template variables in template",
                     "example": {
-                      "1": "Chatwoot"
+                      "1": "Genius Cloud"
                     }
                   }
                 }
@@ -12121,7 +12121,7 @@
         "schema": {
           "type": "string"
         },
-        "description": "Id of the session for which the conversation is created.\n\n\n\n Source Ids can be obtained through contactable inboxes API or via generated.<br/><br/>Website: Chatwoot generated string which can be obtained from webhook events. <br/> Phone Channels(Twilio): Phone number in e164 format <br/> Email Channels: Contact Email address <br/> API Channel: Any Random String"
+        "description": "Id of the session for which the conversation is created.\n\n\n\n Source Ids can be obtained through contactable inboxes API or via generated.<br/><br/>Website: Genius Cloud generated string which can be obtained from webhook events. <br/> Phone Channels(Twilio): Phone number in e164 format <br/> Email Channels: Contact Email address <br/> API Channel: Any Random String"
       },
       "contact_sort_param": {
         "in": "query",

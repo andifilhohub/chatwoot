@@ -12,6 +12,7 @@
 #  private                   :boolean          default(FALSE), not null
 #  processed_message_content :text
 #  schedule_info             :jsonb
+#  scheduled_at              :datetime
 #  sender_type               :string
 #  sentiment                 :jsonb
 #  status                    :integer          default("sent")
@@ -35,6 +36,7 @@
 #  index_messages_on_conversation_id                    (conversation_id)
 #  index_messages_on_created_at                         (created_at)
 #  index_messages_on_inbox_id                           (inbox_id)
+#  index_messages_on_inbox_id_and_scheduled_at          (inbox_id,scheduled_at)
 #  index_messages_on_sender_type_and_sender_id          (sender_type,sender_id)
 #  index_messages_on_source_id                          (source_id)
 #
@@ -79,6 +81,7 @@ class Message < ApplicationRecord
   validates :content_type, presence: true
   validates :content, length: { maximum: 150_000 }
   validates :processed_message_content, length: { maximum: 150_000 }
+  validate :validate_schedule_window, if: :scheduled?
 
   # when you have a temperory id in your frontend and want it echoed back via action cable
   attr_accessor :echo_id
@@ -99,7 +102,7 @@ class Message < ApplicationRecord
     sticker: 11,
     voice_call: 12
   }
-  enum status: { sent: 0, delivered: 1, read: 2, failed: 3 }
+  enum status: { sent: 0, delivered: 1, read: 2, failed: 3, scheduled: 4 }
   # [:submitted_email, :items, :submitted_values] : Used for bot message types
   # [:email] : Used by conversation_continuity incoming email messages
   # [:in_reply_to] : Used to reply to a particular tweet in threads
@@ -118,6 +121,7 @@ class Message < ApplicationRecord
   scope :non_activity_messages, -> { where.not(message_type: :activity).reorder('id desc') }
   scope :today, -> { where("date_trunc('day', created_at) = ?", Date.current) }
   scope :voice_calls, -> { where(content_type: :voice_call) }
+  scope :scheduled_status, -> { where(status: statuses[:scheduled]) }
 
   # TODO: Get rid of default scope
   # https://stackoverflow.com/a/1834250/939299
@@ -130,6 +134,7 @@ class Message < ApplicationRecord
   belongs_to :sender, polymorphic: true, optional: true
 
   has_many :attachments, dependent: :destroy, autosave: true, before_add: :validate_attachments_limit
+  has_one :scheduled_message_job, dependent: :destroy
   has_one :csat_survey_response, dependent: :destroy_async
   has_many :notifications, as: :primary_actor, dependent: :destroy_async
 
@@ -227,6 +232,28 @@ class Message < ApplicationRecord
     true
   end
 
+  def validate_schedule_window
+    if private?
+      errors.add(:base, :schedule_disallowed_for_private_notes)
+      return
+    end
+
+    if scheduled_at.blank?
+      errors.add(:scheduled_at, :blank_schedule_time)
+      return
+    end
+
+    if scheduled_at <= Time.current
+      errors.add(:scheduled_at, :past_schedule_time)
+    end
+
+    return if inbox_id.blank?
+
+    clash = Message.where(inbox_id: inbox_id, status: Message.statuses[:scheduled], scheduled_at: scheduled_at)
+                   .where.not(id: id)
+    errors.add(:scheduled_at, :conflicting_schedule_time) if clash.exists?
+  end
+
   def save_story_info(story_info)
     self.content_attributes = content_attributes.merge(
       {
@@ -292,12 +319,17 @@ class Message < ApplicationRecord
   def execute_after_create_commit_callbacks
     # rails issue with order of active record callbacks being executed https://github.com/rails/rails/issues/20911
     reopen_conversation
-    notify_via_mail
-    set_conversation_activity
-    dispatch_create_events
-    send_reply
-    execute_message_template_hooks
-    update_contact_activity
+    if scheduled?
+      dispatch_create_events
+      schedule_delivery
+    else
+      notify_via_mail
+      set_conversation_activity
+      dispatch_create_events
+      send_reply
+      execute_message_template_hooks
+      update_contact_activity
+    end
   end
 
   def update_contact_activity
@@ -347,6 +379,18 @@ class Message < ApplicationRecord
     # FIXME: Giving it few seconds for the attachment to be uploaded to the service
     # active storage attaches the file only after commit
     attachments.blank? ? ::SendReplyJob.perform_later(id) : ::SendReplyJob.set(wait: 2.seconds).perform_later(id)
+  end
+
+  def schedule_delivery
+    return unless scheduled_at.present?
+
+    info = schedule_info.is_a?(Hash) ? schedule_info : {}
+    Messages::ScheduledDeliveryService.new(
+      message: self,
+      scheduled_at: scheduled_at,
+      timezone: info['scheduled_timezone'],
+      metadata: info
+    ).schedule!
   end
 
   def reopen_conversation

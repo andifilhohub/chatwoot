@@ -1,7 +1,7 @@
 openapi: '3.0.4'
 info:
-  title: Chatwoot - Client API
-  description: Client API endpoints for Chatwoot
+  title: Genius Cloud - Client API
+  description: Client API endpoints for Genius Cloud
   version: 1.1.0
   termsOfService: https://www.chatwoot.com/terms-of-service/
   contact:

@@ -16,11 +16,16 @@ export default {
       cannedMessages: 'getCannedResponses',
     }),
     items() {
-      return this.cannedMessages.map(cannedMessage => ({
-        label: cannedMessage.short_code,
-        key: cannedMessage.short_code,
-        description: cannedMessage.content,
-      }));
+      return this.cannedMessages.map(cannedMessage => {
+        const attachments =
+          cannedMessage.files_data || cannedMessage.uploaded_files || [];
+        return {
+          label: cannedMessage.short_code,
+          key: cannedMessage.short_code,
+          description: cannedMessage.content,
+          attachments,
+        };
+      });
     },
   },
   watch: {
@@ -36,7 +41,10 @@ export default {
       this.$store.dispatch('getCannedResponse', { searchKey: this.searchKey });
     },
     handleMentionClick(item = {}) {
-      this.$emit('replace', item.description);
+      this.$emit('replace', {
+        content: item.description,
+        attachments: item.attachments || [],
+      });
     },
   },
 };

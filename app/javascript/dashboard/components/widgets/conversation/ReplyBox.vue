@@ -1,5 +1,6 @@
 <script>
 import { defineAsyncComponent, useTemplateRef } from 'vue';
+import { format } from 'date-fns';
 import { mapGetters } from 'vuex';
 import { useAlert } from 'dashboard/composables';
 import { useUISettings } from 'dashboard/composables/useUISettings';
@@ -13,6 +14,7 @@ import AttachmentPreview from 'dashboard/components/widgets/AttachmentsPreview.v
 import ReplyTopPanel from 'dashboard/components/widgets/WootWriter/ReplyTopPanel.vue';
 import ReplyEmailHead from './ReplyEmailHead.vue';
 import ReplyBottomPanel from 'dashboard/components/widgets/WootWriter/ReplyBottomPanel.vue';
+import ScheduleMessageModal from './ScheduleMessageModal.vue';
 import ArticleSearchPopover from 'dashboard/routes/dashboard/helpcenter/components/ArticleSearch/SearchPopover.vue';
 import MessageSignatureMissingAlert from './MessageSignatureMissingAlert.vue';
 import ReplyBoxBanner from './ReplyBoxBanner.vue';
@@ -59,6 +61,7 @@ export default {
     MessageSignatureMissingAlert,
     ReplyBottomPanel,
     ReplyEmailHead,
+    ScheduleMessageModal,
     ReplyToMessage,
     ReplyTopPanel,
     ResizableTextArea,
@@ -93,6 +96,9 @@ export default {
     };
   },
   data() {
+    const defaultTimezone =
+      Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
     return {
       message: '',
       inReplyTo: {},
@@ -121,6 +127,10 @@ export default {
       newConversationModalActive: false,
       showArticleSearchPopover: false,
       hasRecordedAudio: false,
+      showScheduleMessageModal: false,
+      defaultScheduleTimezone: defaultTimezone,
+      scheduledMessageAt: null,
+      scheduledMessageTimezone: defaultTimezone,
     };
   },
   computed: {
@@ -135,6 +145,20 @@ export default {
       return this.$store.getters['contacts/getContact'](
         this.currentChat.meta.sender.id
       );
+    },
+    hasScheduledMessage() {
+      return !!this.scheduledMessageAt;
+    },
+    scheduleButtonLabel() {
+      if (!this.hasScheduledMessage) {
+        return '';
+      }
+      try {
+        const date = new Date(this.scheduledMessageAt);
+        return `${format(date, 'MMM d, yyyy h:mm a')} (${this.scheduledMessageTimezone})`;
+      } catch (error) {
+        return '';
+      }
     },
     shouldShowReplyToMessage() {
       return (
@@ -376,6 +400,7 @@ export default {
         // This prevents overwriting user input (e.g., CC/BCC fields) when performing actions
         // like self-assign or other updates that do not actually change the conversation context
         this.setCCAndToEmailsFromLastChat();
+        this.resetScheduledMessage();
       }
 
       if (this.isOnPrivateNote) {
@@ -407,6 +432,7 @@ export default {
         this.setToDraft(oldConversationId, this.replyType);
         this.getFromDraft();
         this.resetRecorderAndClearAttachments();
+        this.resetScheduledMessage();
       }
     },
     message(updatedMessage) {
@@ -434,6 +460,14 @@ export default {
     replyType(updatedReplyType, oldReplyType) {
       this.setToDraft(this.conversationIdByRoute, oldReplyType);
       this.getFromDraft();
+      if (updatedReplyType === REPLY_EDITOR_MODES.NOTE) {
+        this.resetScheduledMessage();
+      }
+    },
+    isOnPrivateNote(newValue) {
+      if (newValue) {
+        this.resetScheduledMessage();
+      }
     },
   },
 
@@ -475,6 +509,42 @@ export default {
     );
   },
   methods: {
+    openScheduleModal() {
+      if (this.isOnPrivateNote) return;
+      this.showScheduleMessageModal = true;
+    },
+    closeScheduleModal() {
+      this.showScheduleMessageModal = false;
+    },
+    handleScheduleConfirm({ scheduledAt, timezone }) {
+      this.scheduledMessageAt = scheduledAt;
+      this.scheduledMessageTimezone =
+        timezone || this.defaultScheduleTimezone;
+      this.showScheduleMessageModal = false;
+    },
+    clearScheduledMessage() {
+      this.resetScheduledMessage();
+      this.showScheduleMessageModal = false;
+    },
+    resetScheduledMessage() {
+      this.scheduledMessageAt = null;
+      this.scheduledMessageTimezone = this.defaultScheduleTimezone;
+      this.showScheduleMessageModal = false;
+    },
+    buildSchedulePayload() {
+      if (!this.hasScheduledMessage || this.isOnPrivateNote) {
+        return {};
+      }
+
+      return {
+        scheduledAt: this.scheduledMessageAt,
+        scheduledTimezone: this.scheduledMessageTimezone,
+        scheduleInfo: {
+          scheduledAt: this.scheduledMessageAt,
+          scheduledTimezone: this.scheduledMessageTimezone,
+        },
+      };
+    },
     handleInsert(article) {
       const { url, title } = article;
       if (this.isRichEditorEnabled) {
@@ -655,8 +725,8 @@ export default {
           this.isAWhatsAppCloudChannel ||
           this.is360DialogWhatsAppChannel;
         // When users send messages containing both text and attachments on Instagram, Instagram treats them as separate messages.
-        // Although Chatwoot combines these into a single message, Instagram sends separate echo events for each component.
-        // This can create duplicate messages in Chatwoot. To prevent this issue, we'll handle text and attachments as separate messages.
+        // Although Genius Cloud combines these into a single message, Instagram sends separate echo events for each component.
+        // This can create duplicate messages in Genius Cloud. To prevent this issue, we'll handle text and attachments as separate messages.
         const isOnInstagram = this.isAnInstagramChannel;
         if ((isOnWhatsApp || isOnInstagram) && !this.isPrivate) {
           this.sendMessageAsMultipleMessages(this.message);
@@ -671,6 +741,7 @@ export default {
 
         this.clearMessage();
         this.hideEmojiPicker();
+        this.resetScheduledMessage();
         this.$emit('update:popOutReplyBox', false);
       }
     },
@@ -744,7 +815,57 @@ export default {
       });
       this.hideContentTemplatesModal();
     },
-    replaceText(message) {
+    normalizeCannedPayload(payload) {
+      if (typeof payload === 'string') {
+        return { content: payload, attachments: [] };
+      }
+
+      return {
+        content: payload?.content || '',
+        attachments: payload?.attachments || [],
+      };
+    },
+    applyCannedAttachments(attachments = []) {
+      if (!attachments.length) return;
+
+      attachments.forEach(attachment => {
+        const blobSignedId = attachment?.signed_id;
+        if (!blobSignedId) {
+          return;
+        }
+
+        const alreadyAttached = this.attachedFiles.some(
+          file => file.blobSignedId === blobSignedId
+        );
+        if (alreadyAttached) return;
+
+        const filename = attachment?.filename || '';
+        const byteSize = attachment?.byte_size || 0;
+        const fileType = attachment?.file_type || '';
+
+        const resource = {
+          filename,
+          name: filename,
+          content_type: fileType,
+          type: fileType,
+          byte_size: byteSize,
+          size: byteSize,
+        };
+
+        this.attachedFiles.push({
+          currentChatId: this.currentChat.id,
+          resource,
+          isPrivate: this.isPrivate,
+          thumb: attachment?.file_url || '',
+          blobSignedId,
+          isFromCannedResponse: true,
+        });
+      });
+    },
+    replaceText(payload) {
+      const { content, attachments } = this.normalizeCannedPayload(payload);
+
+      let message = content;
       if (this.sendWithSignature && !this.private) {
         // if signature is enabled, append it to the message
         // appendSignature ensures that the signature is not duplicated
@@ -756,6 +877,10 @@ export default {
         message,
         variables: this.messageVariables,
       });
+
+      if (attachments.length) {
+        this.applyCannedAttachments(attachments);
+      }
 
       setTimeout(() => {
         useTrack(CONVERSATION_EVENTS.INSERTED_A_CANNED_RESPONSE);
@@ -924,9 +1049,9 @@ export default {
       if (this.attachedFiles && this.attachedFiles.length) {
         let caption = this.isAnInstagramChannel ? '' : message;
         this.attachedFiles.forEach(attachment => {
-          const attachedFile = this.globalConfig.directUploadsEnabled
-            ? attachment.blobSignedId
-            : attachment.resource.file;
+          const attachedFile =
+            attachment.blobSignedId || attachment?.resource?.file;
+          if (!attachedFile) return;
           let attachmentPayload = {
             conversationId: this.currentChat.id,
             files: [attachedFile],
@@ -936,6 +1061,10 @@ export default {
           };
 
           attachmentPayload = this.setReplyToInPayload(attachmentPayload);
+          attachmentPayload = {
+            ...attachmentPayload,
+            ...this.buildSchedulePayload(),
+          };
           multipleMessagePayload.push(attachmentPayload);
           // For WhatsApp, only the first attachment gets a caption
           if (!this.isAnInstagramChannel) caption = '';
@@ -958,6 +1087,10 @@ export default {
         };
 
         messagePayload = this.setReplyToInPayload(messagePayload);
+        messagePayload = {
+          ...messagePayload,
+          ...this.buildSchedulePayload(),
+        };
 
         multipleMessagePayload.push(messagePayload);
       }
@@ -976,10 +1109,10 @@ export default {
       if (this.attachedFiles && this.attachedFiles.length) {
         messagePayload.files = [];
         this.attachedFiles.forEach(attachment => {
-          if (this.globalConfig.directUploadsEnabled) {
-            messagePayload.files.push(attachment.blobSignedId);
-          } else {
-            messagePayload.files.push(attachment.resource.file);
+          const fileReference =
+            attachment.blobSignedId || attachment?.resource?.file;
+          if (fileReference) {
+            messagePayload.files.push(fileReference);
           }
         });
       }
@@ -995,6 +1128,11 @@ export default {
       if (this.toEmails && !this.isOnPrivateNote) {
         messagePayload.toEmails = this.toEmails;
       }
+
+      messagePayload = {
+        ...messagePayload,
+        ...this.buildSchedulePayload(),
+      };
 
       return messagePayload;
     },
@@ -1159,6 +1297,7 @@ export default {
         @toggle-canned-menu="toggleCannedMenu"
         @toggle-variables-menu="toggleVariablesMenu"
         @clear-selection="clearEditorSelection"
+        @apply-canned-attachments="applyCannedAttachments"
       />
     </div>
     <div
@@ -1191,6 +1330,10 @@ export default {
       :recording-audio-duration-text="recordingAudioDurationText"
       :recording-audio-state="recordingAudioState"
       :send-button-text="replyButtonLabel"
+      :is-schedule-active="hasScheduledMessage"
+      :schedule-label="scheduleButtonLabel"
+      :on-open-schedule="openScheduleModal"
+      :on-clear-schedule="clearScheduledMessage"
       :show-audio-recorder="showAudioRecorder"
       :show-editor-toggle="isAPIInbox && !isOnPrivateNote"
       :show-emoji-picker="showEmojiPicker"
@@ -1221,6 +1364,15 @@ export default {
       @close="hideContentTemplatesModal"
       @on-send="onSendContentTemplateReply"
       @cancel="hideContentTemplatesModal"
+    />
+
+    <ScheduleMessageModal
+      :show="showScheduleMessageModal"
+      :scheduled-at="scheduledMessageAt"
+      :timezone="scheduledMessageTimezone"
+      @close="closeScheduleModal"
+      @confirm="handleScheduleConfirm"
+      @clear="clearScheduledMessage"
     />
 
     <woot-confirm-modal

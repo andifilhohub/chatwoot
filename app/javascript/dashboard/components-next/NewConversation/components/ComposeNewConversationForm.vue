@@ -223,6 +223,43 @@ const handleAttachFile = files => {
   state.attachedFiles = files;
 };
 
+const applyCannedAttachments = attachments => {
+  if (!attachments?.length) return;
+
+  const updatedFiles = [...state.attachedFiles];
+
+  attachments.forEach(attachment => {
+    const blobSignedId = attachment?.signed_id;
+    if (!blobSignedId) return;
+
+    const alreadyAdded = updatedFiles.some(
+      file => file.blobSignedId === blobSignedId
+    );
+    if (alreadyAdded) return;
+
+    const filename = attachment?.filename || '';
+    const byteSize = attachment?.byte_size || 0;
+    const fileType = attachment?.file_type || '';
+
+    updatedFiles.push({
+      resource: {
+        filename,
+        name: filename,
+        content_type: fileType,
+        type: fileType,
+        byte_size: byteSize,
+        size: byteSize,
+      },
+      isPrivate: false,
+      thumb: attachment?.file_url || '',
+      blobSignedId,
+      isFromCannedResponse: true,
+    });
+  });
+
+  state.attachedFiles = updatedFiles;
+};
+
 const clearForm = () => {
   Object.assign(state, {
     message: '',
@@ -343,6 +380,7 @@ const shouldShowMessageEditor = computed(() => {
       :is-email-or-web-widget-inbox="inboxTypes.isEmailOrWebWidget"
       :has-errors="validationStates.isMessageInvalid"
       :has-attachments="state.attachedFiles.length > 0"
+      @apply-canned-attachments="applyCannedAttachments"
     />
 
     <AttachmentPreviews

@@ -2,7 +2,12 @@
 import { useVuelidate } from '@vuelidate/core';
 import { required, minLength } from '@vuelidate/validators';
 import { useAlert } from 'dashboard/composables';
-
+import { mapGetters } from 'vuex';
+import { DirectUpload } from 'activestorage';
+import FileUpload from 'vue-upload-component';
+import { uploadFile } from 'dashboard/helper/uploadHelper';
+import { checkFileSizeLimit, formatBytes } from 'shared/helpers/FileHelper';
+import { MAXIMUM_FILE_UPLOAD_SIZE } from 'shared/constants/messages';
 import NextButton from 'dashboard/components-next/button/Button.vue';
 import Modal from '../../../../components/Modal.vue';
 import WootMessageEditor from 'dashboard/components/widgets/WootWriter/Editor.vue';
@@ -13,6 +18,7 @@ export default {
     NextButton,
     Modal,
     WootMessageEditor,
+    FileUpload,
   },
   props: {
     responseContent: {
@@ -35,6 +41,8 @@ export default {
         showLoading: false,
         message: '',
       },
+      attachments: [],
+      maxFileSize: MAXIMUM_FILE_UPLOAD_SIZE,
       show: true,
     };
   },
@@ -47,12 +55,161 @@ export default {
       required,
     },
   },
+  computed: {
+    ...mapGetters({
+      accountId: 'getCurrentAccountId',
+      currentUser: 'getCurrentUser',
+      globalConfig: 'globalConfig/get',
+    }),
+    maxFileSizeBytes() {
+      return this.maxFileSize * 1024 * 1024;
+    },
+  },
+  beforeUnmount() {
+    this.attachments.forEach(attachment => {
+      if (attachment?.file_url?.startsWith('blob:')) {
+        URL.revokeObjectURL(attachment.file_url);
+      }
+    });
+  },
   methods: {
     resetForm() {
+      this.attachments.forEach(attachment => {
+        if (attachment?.file_url?.startsWith('blob:')) {
+          URL.revokeObjectURL(attachment.file_url);
+        }
+      });
       this.shortCode = '';
       this.content = '';
+      this.attachments = [];
       this.v$.shortCode.$reset();
       this.v$.content.$reset();
+    },
+    formatSize(size) {
+      return formatBytes(size || 0, 0);
+    },
+    serializeAttachments() {
+      return this.attachments.map(attachment => {
+        if (attachment.isPersisted) {
+          return { blob_id: attachment.blob_id };
+        }
+
+        return { signed_id: attachment.signed_id };
+      });
+    },
+    applyCannedAttachments(attachments = []) {
+      attachments.forEach(attachment => {
+        const isPersisted = Boolean(attachment?.blob_id);
+        const formatted = {
+          blob_id: attachment?.blob_id,
+          signed_id: isPersisted ? undefined : attachment?.signed_id,
+          filename: attachment?.filename,
+          byte_size: attachment?.byte_size,
+          file_type: attachment?.file_type,
+          file_url: attachment?.file_url,
+          isPersisted,
+        };
+
+        const exists = this.attachments.some(existing => {
+          if (formatted.signed_id && existing.signed_id) {
+            return existing.signed_id === formatted.signed_id;
+          }
+          if (formatted.blob_id && existing.blob_id) {
+            return Number(existing.blob_id) === Number(formatted.blob_id);
+          }
+          return false;
+        });
+
+        if (!exists) {
+          this.attachments.push(formatted);
+        }
+      });
+    },
+    removeAttachment(index) {
+      const [removed] = this.attachments.splice(index, 1);
+      if (removed?.file_url?.startsWith('blob:')) {
+        URL.revokeObjectURL(removed.file_url);
+      }
+    },
+    uploadFromDirectUpload(file) {
+      const upload = new DirectUpload(
+        file.file,
+        `/api/v1/accounts/${this.accountId}/canned_responses/direct_uploads`,
+        {
+          directUploadWillCreateBlobWithXHR: xhr => {
+            xhr.setRequestHeader(
+              'api_access_token',
+              this.currentUser.access_token
+            );
+          },
+        }
+      );
+
+      upload.create((error, blob) => {
+        if (error) {
+          useAlert(error);
+        } else {
+          const exists = this.attachments.some(
+            attachment => attachment.signed_id === blob.signed_id
+          );
+          if (exists) return;
+
+          this.attachments.push({
+            blob_id: blob.id,
+            signed_id: blob.signed_id,
+            filename: blob.filename,
+            byte_size: blob.byte_size,
+            file_type: blob.content_type,
+            file_url: URL.createObjectURL(file.file),
+            isPersisted: false,
+          });
+        }
+      });
+    },
+    async uploadViaBackend(file) {
+      try {
+        const { blobId, signedId, fileUrl } = await uploadFile(
+          file.file,
+          this.accountId
+        );
+
+        const exists = this.attachments.some(
+          attachment => attachment.signed_id === signedId
+        );
+        if (exists) return;
+
+        this.attachments.push({
+          blob_id: Number(blobId),
+          signed_id: signedId,
+          filename: file.file.name,
+          byte_size: file.file.size,
+          file_type: file.file.type,
+          file_url: fileUrl,
+          isPersisted: false,
+        });
+      } catch (error) {
+        useAlert(
+          error?.message || this.$t('CANNED_MGMT.ADD.API.ERROR_MESSAGE')
+        );
+      }
+    },
+    handleAttachmentUpload(file) {
+      if (!file || !file.file) return;
+
+      if (!checkFileSizeLimit(file, this.maxFileSize)) {
+        useAlert(
+          this.$t('CONVERSATION.FILE_SIZE_LIMIT', {
+            MAXIMUM_SUPPORTED_FILE_UPLOAD_SIZE: this.maxFileSize,
+          })
+        );
+        return;
+      }
+
+      if (this.globalConfig.directUploadsEnabled) {
+        this.uploadFromDirectUpload(file);
+      } else {
+        this.uploadViaBackend(file);
+      }
     },
     addCannedResponse() {
       // Show loading on button
@@ -62,6 +219,7 @@ export default {
         .dispatch('createCannedResponse', {
           short_code: this.shortCode,
           content: this.content,
+          uploaded_files: this.serializeAttachments(),
         })
         .then(() => {
           // Reset Form, Show success message
@@ -114,7 +272,52 @@ export default {
               :enable-canned-responses="false"
               :placeholder="$t('CANNED_MGMT.ADD.FORM.CONTENT.PLACEHOLDER')"
               @blur="v$.content.$touch"
+              @apply-canned-attachments="applyCannedAttachments"
             />
+          </div>
+        </div>
+        <div class="w-full space-y-2">
+          <label>
+            {{ $t('CANNED_MGMT.FORM.ATTACHMENTS.LABEL') }}
+          </label>
+          <FileUpload
+            input-id="cannedResponseAttachment"
+            :multiple="true"
+            :drop="true"
+            :size="maxFileSizeBytes"
+            @input-file="handleAttachmentUpload"
+          >
+            <NextButton
+              icon="i-ph-paperclip"
+              slate
+              faded
+              sm
+              :label="$t('CANNED_MGMT.FORM.ATTACHMENTS.ADD')"
+            />
+          </FileUpload>
+          <div
+            v-if="attachments.length"
+            class="flex flex-col gap-1 rounded-md border border-n-weak p-2"
+          >
+            <div
+              v-for="(attachment, index) in attachments"
+              :key="`${attachment.filename}-${index}`"
+              class="flex items-center justify-between gap-2"
+            >
+              <div class="flex flex-col">
+                <span class="text-sm font-medium">{{ attachment.filename }}</span>
+                <span class="text-xs text-n-weak">
+                  {{ formatSize(attachment.byte_size) }}
+                </span>
+              </div>
+              <NextButton
+                ghost
+                slate
+                xs
+                icon="i-lucide-x"
+                @click.prevent="removeAttachment(index)"
+              />
+            </div>
           </div>
         </div>
         <div class="flex flex-row justify-end w-full gap-2 px-0 py-2">

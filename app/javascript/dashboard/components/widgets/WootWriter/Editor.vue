@@ -97,6 +97,7 @@ const emit = defineEmits([
   'focus',
   'input',
   'update:modelValue',
+  'applyCannedAttachments',
 ]);
 
 const { t } = useI18n();
@@ -535,6 +536,14 @@ function insertSpecialContent(type, content) {
     return;
   }
 
+  if (type === 'cannedResponse') {
+    const { text, attachments } = normalizeCannedResponse(content);
+    if (attachments.length) {
+      emit('applyCannedAttachments', attachments);
+    }
+    content = text;
+  }
+
   let { node, from, to } = getContentNode(
     editorView,
     type,
@@ -556,6 +565,21 @@ function insertSpecialContent(type, content) {
   };
 
   useTrack(event_map[type]);
+}
+
+function normalizeCannedResponse(payload) {
+  if (typeof payload === 'string') {
+    return { text: payload, attachments: [] };
+  }
+
+  if (payload && typeof payload === 'object') {
+    return {
+      text: payload.content || '',
+      attachments: payload.attachments || [],
+    };
+  }
+
+  return { text: '', attachments: [] };
 }
 
 function handleLineBreakWhenCmdAndEnterToSendEnabled(event) {

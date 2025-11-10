@@ -20,6 +20,7 @@ const props = defineProps({
 });
 
 const { t } = useI18n();
+const emit = defineEmits(['applyCannedAttachments']);
 
 const modelValue = defineModel({
   type: String,
@@ -63,11 +64,28 @@ const hideMention = () => {
   state.value.showMentions = false;
 };
 
-const replaceText = async message => {
+const normalizeCannedPayload = payload => {
+  if (typeof payload === 'string') {
+    return { content: payload, attachments: [] };
+  }
+
+  return {
+    content: payload?.content || '',
+    attachments: payload?.attachments || [],
+  };
+};
+
+const replaceText = async payload => {
+  const { content, attachments } = normalizeCannedPayload(payload);
+
   // Only append signature on replace if sendWithSignature is true
   const finalMessage = props.sendWithSignature
-    ? appendSignature(message, plainTextSignature.value)
-    : message;
+    ? appendSignature(content, plainTextSignature.value)
+    : content;
+
+  if (attachments.length) {
+    emit('applyCannedAttachments', attachments);
+  }
 
   await nextTick();
   modelValue.value = finalMessage;

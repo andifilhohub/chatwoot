@@ -106,14 +106,15 @@ export const mergeInboxDetails = (inboxesData, inboxesList = []) => {
 
 export const prepareAttachmentPayload = (
   attachedFiles,
-  directUploadsEnabled
+  _directUploadsEnabled
 ) => {
   const files = [];
   attachedFiles.forEach(attachment => {
-    if (directUploadsEnabled) {
-      files.push(attachment.blobSignedId);
-    } else {
-      files.push(attachment.resource.file);
+    const fileReference =
+      attachment.blobSignedId || attachment?.resource?.file;
+
+    if (fileReference) {
+      files.push(fileReference);
     }
   });
   return files;

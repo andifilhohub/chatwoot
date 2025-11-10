@@ -1,6 +1,6 @@
 # Internal Chat API Documentation
 
-Esta documentação detalha todos os endpoints disponíveis para o sistema de Internal Chat do Chatwoot.
+Esta documentação detalha todos os endpoints disponíveis para o sistema de Internal Chat do Genius Cloud.
 
 ## Base URL
 ```

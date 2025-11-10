@@ -12,6 +12,9 @@ export const buildCreatePayload = ({
   bccEmails = '',
   toEmails = '',
   templateParams,
+  scheduledAt,
+  scheduledTimezone,
+  scheduleInfo,
 }) => {
   let payload;
   if (files && files.length !== 0) {
@@ -33,6 +36,15 @@ export const buildCreatePayload = ({
     if (contentAttributes) {
       payload.append('content_attributes', JSON.stringify(contentAttributes));
     }
+    if (scheduledAt) {
+      payload.append('scheduled_at', scheduledAt);
+    }
+    if (scheduledTimezone) {
+      payload.append('scheduled_timezone', scheduledTimezone);
+    }
+    if (scheduleInfo) {
+      payload.append('schedule_info', JSON.stringify(scheduleInfo));
+    }
   } else {
     payload = {
       content: message,
@@ -44,6 +56,15 @@ export const buildCreatePayload = ({
       to_emails: toEmails,
       template_params: templateParams,
     };
+    if (scheduledAt) {
+      payload.scheduled_at = scheduledAt;
+    }
+    if (scheduledTimezone) {
+      payload.scheduled_timezone = scheduledTimezone;
+    }
+    if (scheduleInfo) {
+      payload.schedule_info = scheduleInfo;
+    }
   }
   return payload;
 };
@@ -64,6 +85,9 @@ class MessageApi extends ApiClient {
     bccEmails = '',
     toEmails = '',
     templateParams,
+    scheduledAt,
+    scheduledTimezone,
+    scheduleInfo,
   }) {
     return axios({
       method: 'post',
@@ -78,6 +102,9 @@ class MessageApi extends ApiClient {
         bccEmails,
         toEmails,
         templateParams,
+        scheduledAt,
+        scheduledTimezone,
+        scheduleInfo,
       }),
     });
   }

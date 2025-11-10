@@ -3,7 +3,7 @@
 # rubocop:disable Metrics/BlockLength
 namespace :chatwoot do
   namespace :dev do
-    desc 'Toggle between Chatwoot variants with interactive menu'
+    desc 'Toggle between Genius Cloud variants with interactive menu'
     task toggle_variant: :environment do
       # Only allow in development environment
       return unless Rails.env.development?
@@ -13,7 +13,7 @@ namespace :chatwoot do
       handle_user_selection
     end
 
-    desc 'Show current Chatwoot variant status'
+    desc 'Show current Genius Cloud variant status'
     task show_variant: :environment do
       return unless Rails.env.development?
 
@@ -24,7 +24,7 @@ namespace :chatwoot do
 
     def show_current_variant
       puts "\n#{('=' * 50)}"
-      puts '🚀 CHATWOOT VARIANT MANAGER'
+      puts '🚀 GENIUS CLOUD VARIANT MANAGER'
       puts '=' * 50
 
       # Check InstallationConfig

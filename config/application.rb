@@ -58,7 +58,7 @@ module Chatwoot
     config.generators.javascripts = false
     config.generators.stylesheets = false
 
-    # Custom chatwoot configurations
+    # Custom Genius Cloud configurations
     config.x = config_for(:app).with_indifferent_access
 
     # https://stackoverflow.com/questions/72970170/upgrading-to-rails-6-1-6-1-causes-psychdisallowedclass-tried-to-load-unspecif

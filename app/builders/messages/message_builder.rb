@@ -10,6 +10,8 @@ class Messages::MessageBuilder
     @message_type = params[:message_type] || 'outgoing'
     @attachments = params[:attachments]
     @automation_rule = content_attributes&.dig(:automation_rule_id)
+    @scheduled_at = parse_scheduled_at(params[:scheduled_at])
+    @scheduled_timezone = params[:scheduled_timezone] || params[:timezone]
     return unless params.instance_of?(ActionController::Parameters)
 
     @in_reply_to = content_attributes&.dig(:in_reply_to)
@@ -138,6 +140,53 @@ class Messages::MessageBuilder
     AgentBot.where(account_id: [nil, @conversation.account.id]).find_by(id: @params[:sender_id])
   end
 
+  def schedule_attributes
+    return {} unless scheduled?
+
+    {
+      status: :scheduled,
+      scheduled_at: scheduled_at,
+      schedule_info: schedule_info_payload
+    }
+  end
+
+  def scheduled?
+    scheduled_at.present?
+  end
+
+  def scheduled_at
+    @scheduled_at
+  end
+
+  def schedule_timezone
+    (@scheduled_timezone.presence || Time.zone&.name).to_s
+  end
+
+  def schedule_info_payload
+    info = schedule_metadata
+    info['scheduled_at'] = scheduled_at.iso8601
+    info['scheduled_timezone'] = schedule_timezone if schedule_timezone.present?
+    info['scheduled_by_id'] = @user&.id if @user
+    info['scheduled_by_name'] = @user&.name if @user&.respond_to?(:name)
+    info
+  end
+
+  def schedule_metadata
+    raw = convert_to_hash(@params).fetch(:schedule_info, {})
+    raw = raw.to_unsafe_h if raw.is_a?(ActionController::Parameters)
+    raw.is_a?(Hash) ? raw.deep_dup : {}
+  end
+
+  def parse_scheduled_at(value)
+    return nil if value.blank?
+    return value.in_time_zone if value.respond_to?(:in_time_zone)
+    parsed = Time.zone.parse(value.to_s)
+    parsed ||= Time.iso8601(value.to_s)
+    parsed.in_time_zone
+  rescue ArgumentError, TypeError
+    raise StandardError, I18n.t('errors.messages.invalid_schedule_time')
+  end
+
   def message_params
     {
       account_id: @conversation.account_id,
@@ -151,6 +200,10 @@ class Messages::MessageBuilder
       in_reply_to: @in_reply_to,
       echo_id: @params[:echo_id],
       source_id: @params[:source_id]
-    }.merge(external_created_at).merge(automation_rule_id).merge(campaign_id).merge(template_params)
+    }.merge(external_created_at)
+     .merge(automation_rule_id)
+     .merge(campaign_id)
+     .merge(template_params)
+     .merge(schedule_attributes)
   end
 end

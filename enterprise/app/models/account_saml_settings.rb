@@ -54,6 +54,6 @@ class AccountSamlSettings < ApplicationRecord
   end
 
   def installation_name
-    GlobalConfigService.load('INSTALLATION_NAME', 'Chatwoot')
+    GlobalConfigService.load('INSTALLATION_NAME', 'Genius Cloud')
   end
 end

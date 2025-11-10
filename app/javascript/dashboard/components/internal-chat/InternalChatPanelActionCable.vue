@@ -11,7 +11,7 @@
       @click.stop
     >
       <!-- Sidebar -->
-      <div class="w-80 min-w-[320px] max-w-[320px] bg-n-solid-2 border-r border-n-weak flex flex-col">
+  <div class="w-80 min-w-[320px] max-w-[320px] bg-n-solid-2 border-r border-n-weak flex flex-col internal-chat-sidebar">
         <div class="px-6 py-4 border-b border-n-weak h-[84px] flex items-center">
           <div>
             <h3 class="text-lg font-semibold text-n-slate-12 leading-6">
@@ -53,23 +53,17 @@
                 <div class="font-medium">{{ $t('INTERNAL_CHAT.ROOMS.GENERAL') }}</div>
                 <div class="text-sm opacity-70">{{ $t('INTERNAL_CHAT.ROOMS.TYPE.GENERAL') }}</div>
               </div>
-              <div v-if="getGeneralUnread > 0" class="ml-2 px-2 py-0.5 rounded-full text-xs font-medium"
-                   :class="selectedChatType === 'general' ? 'bg-white/20 text-white' : 'bg-red-600 text-white'">
-                {{ getGeneralUnread }}
-              </div>
+              <div v-if="selectedChatType !== 'general'" class="w-2 h-2 bg-green-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
             </div>
           </div>
 
           <!-- Team Chats -->
           <div class="space-y-2">
-            <h4 class="text-xs font-semibold text-n-slate-10 uppercase tracking-wide px-2 flex items-center">
-              <span>{{ $t('INTERNAL_CHAT.ROOMS.TEAMS') }}</span>
-              <span v-if="totalTeamUnread > 0" class="ml-2 px-2 py-0.5 rounded-full text-[10px] leading-none font-medium bg-red-600 text-white">
-                {{ totalTeamUnread }}
-              </span>
+            <h4 class="text-xs font-semibold text-n-slate-10 uppercase tracking-wide px-2">
+              {{ $t('INTERNAL_CHAT.ROOMS.TEAMS') }}
             </h4>
-            <div v-if="teamChats.length > 0" class="space-y-1 sm:space-y-2 md:space-y-3">
-              <div v-for="team in teamChats" :key="team.id">
+            <div v-if="teamChats.length > 0">
+              <div v-for="team in teamChats" :key="team.id" class="mb-2">
                 <div
                   @click="selectChatMethod('team', team.id)"
                   class="flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 group hover:shadow-md"
@@ -79,7 +73,7 @@
                       : 'bg-n-solid-3 hover:bg-n-solid-4 text-n-slate-12 hover:scale-[1.02]'
                   "
                 >
-                  <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium mr-3 shadow-inner">
+                  <div class="w-10 h-10 bg-woot-600 rounded-full flex items-center justify-center text-white text-sm font-medium mr-3 shadow-inner">
                     {{ team.name.charAt(0).toUpperCase() }}
                   </div>
                   <div class="flex-1">
@@ -90,10 +84,7 @@
                       </span>
                     </div>
                   </div>
-                  <div v-if="getTeamUnread(team) > 0" class="ml-2 px-2 py-0.5 rounded-full text-xs font-medium"
-                       :class="selectedChatType === 'team' && selectedChatId === team.id ? 'bg-white/20 text-white' : 'bg-red-600 text-white'">
-                    {{ getTeamUnread(team) }}
-                  </div>
+                  <div v-if="selectedChatType !== 'team' || selectedChatId !== team.id" class="w-2 h-2 bg-woot-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
               </div>
             </div>
@@ -104,11 +95,8 @@
 
           <!-- Direct Messages -->
           <div class="space-y-2">
-            <h4 class="text-xs font-semibold text-n-slate-10 uppercase tracking-wide px-2 flex items-center">
-              <span>{{ $t('INTERNAL_CHAT.ROOMS.DIRECT') }}</span>
-              <span v-if="totalDirectUnread > 0" class="ml-2 px-2 py-0.5 rounded-full text-[10px] leading-none font-medium bg-red-600 text-white">
-                {{ totalDirectUnread }}
-              </span>
+            <h4 class="text-xs font-semibold text-n-slate-10 uppercase tracking-wide px-2">
+              {{ $t('INTERNAL_CHAT.ROOMS.DIRECT') }}
             </h4>
             <div v-if="directMessages.length > 0" class="space-y-2 max-h-80 overflow-y-auto pr-2">
               <div v-for="agent in directMessages" :key="agent.id">
@@ -145,10 +133,10 @@
                       </span>
                     </div>
                   </div>
-                  <div v-if="getDirectUnread(agent) > 0" class="ml-2 px-2 py-0.5 rounded-full text-xs font-medium"
-                       :class="selectedChatType === 'direct' && selectedChatId === agent.id ? 'bg-white/20 text-white' : 'bg-red-600 text-white'">
-                    {{ getDirectUnread(agent) }}
-                  </div>
+                  <div v-if="selectedChatType !== 'direct' || selectedChatId !== agent.id" :class="[
+                    'w-2 h-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity',
+                    getStatusColor(agent.availability_status)
+                  ]"></div>
                 </div>
               </div>
             </div>
@@ -214,7 +202,7 @@
         </div>
 
         <!-- Área de mensagens -->
-        <div class="flex-1 overflow-y-scroll p-4 space-y-4" ref="messageContainer" style="height: 500px; max-height: 500px;">
+  <div class="flex-1 overflow-y-scroll p-4 space-y-4 internal-chat-messages-scroll" ref="messageContainer" style="height: 500px; max-height: 500px;">
           <div v-if="messages.length === 0" class="flex-1 flex items-center justify-center">
             <div class="text-center">
               <div class="w-16 h-16 mx-auto mb-4 bg-n-solid-3 rounded-full flex items-center justify-center">
@@ -358,9 +346,6 @@ const {
   selectRoom,
   disconnect,
   currentUser,
-  unreadCounts,
-  resetUnread,
-  dmRoomForUser,
 } = useInternalChatData();
 
 // Estado local do componente
@@ -374,47 +359,13 @@ const loading = computed(() => isLoading.value);
 const directMessages = computed(() => {
   const agents = store.getters['agents/getAgents'] || [];
   const currentUserId = currentUser.value?.id;
+
   return agents.filter(agent => agent.id !== currentUserId);
 });
 
-// Mapa userId -> roomId para DMs (usa payload de rooms quando disponível)
-const dmRoomIdMap = computed(() => {
-  // Preferência: mapeamento alimentado em tempo real pelo composable
-  const live = dmRoomForUser.value || {};
-  // Fallback: rooms.direct_messages
-  const map = { ...live };
-  const list = rooms.value?.direct_messages || [];
-  list.forEach(item => {
-    if (item?.id != null && item?.room_id != null && !map[String(item.id)]) {
-      map[String(item.id)] = item.room_id;
-    }
-  });
-  return map;
+const teamChats = computed(() => {
+  return store.getters['teams/getTeams'] || [];
 });
-
-const roomKey = (type, id) => `${String(type)}:${String(id ?? 'general')}`;
-const getGeneralUnread = computed(() => {
-  const id = generalChat.value?.room_id;
-  return (unreadCounts.value || {})[roomKey('general', id)] || 0;
-});
-const getTeamUnread = team => ((unreadCounts.value || {})[roomKey('team', team.room_id)] || 0);
-const getDirectUnread = agent => {
-  const rid = dmRoomIdMap.value[agent.id];
-  if (!rid) return 0;
-  return (unreadCounts.value || {})[roomKey('direct', rid)] || 0;
-};
-
-// Totais por categoria
-const totalTeamUnread = computed(() => {
-  const map = unreadCounts.value || {};
-  return Object.entries(map).reduce((sum, [k, v]) => (k.startsWith('team:') ? sum + (Number(v) || 0) : sum), 0);
-});
-const totalDirectUnread = computed(() => {
-  const map = unreadCounts.value || {};
-  return Object.entries(map).reduce((sum, [k, v]) => (k.startsWith('direct:') ? sum + (Number(v) || 0) : sum), 0);
-});
-
-const teamChats = computed(() => rooms.value?.teams || []);
 
 const generalChat = computed(() => {
   const generalRoom = rooms.value?.general;
@@ -461,15 +412,7 @@ const selectChatMethod = async (type, id = null) => {
     const room = await createDirectRoom(id);
     if (!room) {
       console.warn('⚠️ Failed to create/get direct room');
-      return;
     }
-    const directRoom = {
-      id: room.room_id || room.id,
-      room_id: room.room_id || room.id,
-      identifier: id,
-      room_type: 'direct',
-    };
-    await selectRoom(directRoom);
   } else if (type === 'general') {
     const generalRoom = {
       ...generalChat.value,
@@ -560,32 +503,23 @@ const getInitials = (name) => {
 };
 
 const sendMessageAction = async () => {
-  console.log('🚀 sendMessageAction called!', {
-    hasInput: !!messageInput.value,
-    inputValue: messageInput.value,
-    trimmed: messageInput.value?.trim()
-  });
-  
-  if (!messageInput.value.trim()) {
-    console.warn('⚠️ Empty message, returning');
-    return;
-  }
+  if (!messageInput.value.trim()) return;
 
   const messageContent = messageInput.value.trim();
-  
-  console.log('📝 Message content:', messageContent);
   
   // Limpa o input imediatamente
   messageInput.value = '';
 
-  console.log('🔄 Calling sendMessage from composable...');
-  
   // Chama a função do composable
   try {
     await sendMessage(messageContent);
-    console.log('✅ sendMessage completed');
-  } catch (error) {
-    console.error('❌ sendMessage error:', error);
+  } finally {
+    // Scroll para baixo após enviar
+    nextTick(() => {
+      if (messageContainer.value) {
+        messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+      }
+    });
   }
 };
 
@@ -637,16 +571,11 @@ watch(isInternalChatOpen, isOpen => {
   }
 });
 
-// Watch inteligente: só faz scroll quando o array de mensagens aumenta
-let previousLength = 0;
-watch(() => messages.value.length, (newLength) => {
-  if (newLength > previousLength && newLength > 0) {
-    nextTick(() => {
-      if (messageContainer.value) {
-        messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
-      }
-    });
-  }
-  previousLength = newLength;
+watch(messages, () => {
+  nextTick(() => {
+    if (messageContainer.value) {
+      messageContainer.value.scrollTop = messageContainer.value.scrollHeight;
+    }
+  });
 });
 </script>

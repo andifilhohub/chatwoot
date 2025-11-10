@@ -1,0 +1,71 @@
+{
+  "SCHEDULED_MESSAGES": {
+    "TITLE": "Scheduled messages",
+    "DESCRIPTION": "Manage messages queued to send later. Update the message or cancel it before it is delivered.",
+    "STATUS": {
+      "SCHEDULED": "Scheduled",
+      "PROCESSING": "Processing",
+      "SENT": "Sent",
+      "CANCELLED": "Cancelled",
+      "FAILED": "Failed"
+    },
+    "TABLE": {
+      "CONTENT": "Content",
+      "CONTACT": "Contact",
+      "AGENT": "Scheduled by",
+      "INBOX": "Inbox",
+      "SCHEDULED_FOR": "Scheduled for",
+      "STATUS": "Status",
+      "ATTACHMENTS": "Attachments",
+      "CREATED_AT": "Created at",
+      "RECURRENCE": "Recurrence",
+      "ACTIONS": "Actions"
+    },
+    "FILTERS": {
+      "SEARCH_PLACEHOLDER": "Search messages…",
+      "STATUS": "Status",
+      "AGENT": "Scheduled by",
+      "INBOX": "Inbox",
+      "SCHEDULED_FROM": "Scheduled from",
+      "SCHEDULED_TO": "Scheduled to",
+      "CREATED_FROM": "Created from",
+      "CREATED_TO": "Created to",
+      "SHOW_PANEL": "Filters",
+      "HIDE_PANEL": "Hide filters",
+      "APPLY": "Apply filters",
+      "RESET": "Reset filters"
+    },
+    "FILTERS_TITLE": "Filter scheduled messages",
+    "FILTERS_SUBTITLE": "Use the controls below to refine the list.",
+    "EMPTY": {
+      "TITLE": "No scheduled messages yet",
+      "DESCRIPTION": "Schedule a reply from any conversation to see it listed here."
+    },
+    "ACTIONS": {
+      "VIEW": "View conversation",
+      "EDIT": "Edit",
+      "DELETE": "Cancel"
+    },
+    "ALL_STATUSES": "All statuses",
+    "CONFIRM_DELETE": "Cancel this scheduled message?",
+    "SUCCESS": {
+      "UPDATE": "Scheduled message updated.",
+      "DELETE": "Scheduled message cancelled."
+    },
+    "ERRORS": {
+      "FETCH": "Unable to load scheduled messages.",
+      "UPDATE": "Unable to update scheduled message.",
+      "DELETE": "Unable to cancel scheduled message."
+    },
+    "EDIT_MODAL": {
+      "TITLE": "Edit scheduled message",
+      "CONTENT_LABEL": "Message",
+      "HELP_ATTACHMENTS": "Attachments remain unchanged when editing from here.",
+      "SCHEDULE_LABEL": "Send on",
+      "CANCEL": "Cancel",
+      "SAVE": "Save changes",
+      "ERROR_PAST": "Pick a time in the future.",
+      "ERROR_REQUIRED": "Select a date and time before saving."
+    }
+  }
+}

@@ -1,5 +1,5 @@
 [Unit]
-Description=Chatwoot Background Worker
+Description=Genius Cloud Background Worker
 Wants=chatwoot-worker.1.service
 
 [Install]

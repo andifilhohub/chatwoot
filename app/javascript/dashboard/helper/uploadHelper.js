@@ -41,6 +41,7 @@ export async function uploadFile(file, accountId) {
     fileUrl: data.file_url,
     blobKey: data.blob_key,
     blobId: data.blob_id,
+    signedId: data.signed_id,
   };
 }
 
@@ -66,5 +67,6 @@ export async function uploadExternalImage(url, accountId) {
     fileUrl: data.file_url,
     blobKey: data.blob_key,
     blobId: data.blob_id,
+    signedId: data.signed_id,
   };
 }

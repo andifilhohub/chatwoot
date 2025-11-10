@@ -1,4 +1,4 @@
-# Backup do Chat Interno - Chatwoot
+# Backup do Chat Interno - Genius Cloud
 
 **Data do backup:** 03/10/2025 20:01:00
 
@@ -58,7 +58,7 @@ app/GeniusCloud-modify/app/javascript/dashboard/
 - Vue 3 com Composition API
 - ActionCable para WebSocket
 - Tailwind CSS para styling
-- ApiClient pattern do Chatwoot
+- ApiClient pattern do Genius Cloud
 - Vuex para gerenciamento de estado
 
 ## Status do desenvolvimento:
