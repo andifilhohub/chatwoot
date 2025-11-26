@@ -254,6 +254,10 @@
       "COPY": "Copy",
       "REPLY_TO": "Reply to this message",
       "DELETE": "Delete",
+      "EDIT": "Edit",
+      "EDIT_MESSAGE": "Edit message",
+      "SAVE": "Save",
+      "CANCEL": "Cancel",
       "CREATE_A_CANNED_RESPONSE": "Add to canned responses",
       "TRANSLATE": "Translate",
       "COPY_PERMALINK": "Copy link to the message",
@@ -265,9 +269,16 @@
         "CANCEL": "Cancel"
       }
     },
+    "EDIT_MESSAGE": {
+      "SUCCESS": "Message edited successfully",
+      "FAIL": "Couldn't edit message! Try again",
+      "EMPTY_CONTENT": "Message content cannot be empty",
+      "PLACEHOLDER": "Edit your message..."
+    },
     "SIDEBAR": {
       "CONTACT": "Contact",
-      "COPILOT": "Copilot"
+      "COPILOT": "Copilot",
+      "PDV": "Point of Sale"
     }
   },
   "EMAIL_TRANSCRIPT": {

@@ -111,6 +111,14 @@ Rails.application.routes.draw do
           resources :dashboard_apps, only: [:index, :show, :create, :update, :destroy]
           namespace :channels do
             resource :twilio_channel, only: [:create]
+            resources :zaphub_channels, only: [] do
+              member do
+                post :create_session
+                get :qr_code
+                get :status
+                post :disconnect
+              end
+            end
           end
           resources :conversations, only: [:index, :create, :show, :update, :destroy] do
             collection do
@@ -198,6 +206,7 @@ Rails.application.routes.draw do
             delete :avatar, on: :member
             post :sync_templates, on: :member
           end
+          resources :integrahub_products, only: [:index]
           resources :inbox_members, only: [:create, :show], param: :inbox_id do
             collection do
               delete :destroy
@@ -525,6 +534,7 @@ Rails.application.routes.draw do
   post 'webhooks/whatsapp/:phone_number', to: 'webhooks/whatsapp#process_payload'
   get 'webhooks/instagram', to: 'webhooks/instagram#verify'
   post 'webhooks/instagram', to: 'webhooks/instagram#events'
+  post 'webhooks/zaphub/:channel_id', to: 'public/api/v1/zaphub/callbacks#create', as: :zaphub_callback
 
   namespace :twitter do
     resource :callback, only: [:show]

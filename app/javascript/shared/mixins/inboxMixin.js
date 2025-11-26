@@ -89,6 +89,9 @@ export default {
         this.whatsAppAPIProvider === 'default'
       );
     },
+    isAZaphubChannel() {
+      return this.channelType === INBOX_TYPES.ZAPHUB;
+    },
     chatAdditionalAttributes() {
       const { additional_attributes: additionalAttributes } = this.chat || {};
       return additionalAttributes || {};

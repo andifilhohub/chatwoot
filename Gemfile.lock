@@ -1045,6 +1045,7 @@ DEPENDENCIES
   lograge (~> 0.14.0)
   maxminddb
   meta_request (>= 0.8.3)
+  mini_magick
   mock_redis
   neighbor
   net-smtp (~> 0.3.4)

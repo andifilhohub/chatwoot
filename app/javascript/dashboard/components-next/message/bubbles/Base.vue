@@ -12,6 +12,7 @@ import { MESSAGE_VARIANTS, ORIENTATION, MESSAGE_STATUS } from '../constants';
 
 const props = defineProps({
   hideMeta: { type: Boolean, default: false },
+  maxWidth: { type: String, default: null },
 });
 
 const { variant, orientation, inReplyTo, shouldGroupWithNext, status, scheduleInfo } =
@@ -124,9 +125,10 @@ const replyToPreview = computed(() => {
     :class="[
       messageClass,
       {
-        'max-w-lg': variant !== MESSAGE_VARIANTS.EMAIL,
+        'max-w-lg': variant !== MESSAGE_VARIANTS.EMAIL && !props.maxWidth,
       },
     ]"
+    :style="props.maxWidth ? { maxWidth: props.maxWidth } : {}"
   >
     <div
       v-if="inReplyTo"

@@ -10,6 +10,15 @@ class BaseActionCableConnector {
     const websocketURL = websocketHost ? `${websocketHost}/cable` : undefined;
 
     this.consumer = createConsumer(websocketURL);
+    // Log params before subscribing so we can debug real-time payload
+    /* eslint-disable no-console */
+    console.log('[ActionCable] subscribing with params:', {
+      channel: 'RoomChannel',
+      pubsub_token: pubsubToken,
+      account_id: app.$store.getters.getCurrentAccountId,
+      user_id: app.$store.getters.getCurrentUserID,
+    });
+    /* eslint-enable no-console */
     this.subscription = this.consumer.subscriptions.create(
       {
         channel: 'RoomChannel',
@@ -80,10 +89,15 @@ class BaseActionCableConnector {
   }
 
   onReceived = ({ event, data } = {}) => {
+    console.log('📨 [ActionCable] Event received:', event, 'Data:', data);
     if (this.isAValidEvent(data)) {
       if (this.events[event] && typeof this.events[event] === 'function') {
         this.events[event](data);
+      } else {
+        console.warn('⚠️ [ActionCable] No handler for event:', event);
       }
+    } else {
+      console.warn('⚠️ [ActionCable] Invalid event data (account_id mismatch?):', data);
     }
   };
 }

@@ -24,11 +24,15 @@ const isContactSidebarOpen = computed(
 const isCopilotPanelOpen = computed(
   () => uiSettings.value.is_copilot_panel_open
 );
+const isPdvPanelOpen = computed(
+  () => uiSettings.value.is_pdv_panel_open
+);
 
 const toggleConversationSidebarToggle = () => {
   updateUISettings({
     is_contact_sidebar_open: !isContactSidebarOpen.value,
     is_copilot_panel_open: false,
+    is_pdv_panel_open: false,
   });
 };
 
@@ -36,6 +40,7 @@ const handleConversationSidebarToggle = () => {
   updateUISettings({
     is_contact_sidebar_open: true,
     is_copilot_panel_open: false,
+    is_pdv_panel_open: false,
   });
 };
 
@@ -43,7 +48,23 @@ const handleCopilotSidebarToggle = () => {
   updateUISettings({
     is_contact_sidebar_open: false,
     is_copilot_panel_open: true,
+    is_pdv_panel_open: false,
   });
+};
+
+const handlePdvSidebarToggle = () => {
+  console.log('PDV button clicked!');
+  console.log('Current uiSettings:', uiSettings.value);
+  console.log('Current PDV state:', isPdvPanelOpen.value);
+  updateUISettings({
+    is_contact_sidebar_open: false,
+    is_copilot_panel_open: false,
+    is_pdv_panel_open: true,
+  });
+  setTimeout(() => {
+    console.log('Updated PDV state after timeout:', isPdvPanelOpen.value);
+    console.log('Updated uiSettings after timeout:', uiSettings.value);
+  }, 100);
 };
 
 const keyboardEvents = {
@@ -82,6 +103,18 @@ useKeyboardEvents(keyboardEvents);
       sm
       icon="i-woot-captain"
       @click="handleCopilotSidebarToggle"
+    />
+    <Button
+      v-tooltip.bottom="$t('CONVERSATION.SIDEBAR.PDV')"
+      ghost
+      slate
+      class="!rounded-full"
+      :class="{
+        'bg-n-alpha-2': isPdvPanelOpen,
+      }"
+      sm
+      icon="i-ph-shopping-cart-bold"
+      @click="handlePdvSidebarToggle"
     />
   </div>
 </template>

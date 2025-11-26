@@ -96,7 +96,7 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
   end
 
   def allowed_channel_types
-    %w[web_widget api email line telegram whatsapp sms]
+    %w[web_widget api email line telegram whatsapp sms zaphub]
   end
 
   def update_inbox_working_hours
@@ -172,8 +172,30 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
       'line' => Channel::Line,
       'telegram' => Channel::Telegram,
       'whatsapp' => Channel::Whatsapp,
-      'sms' => Channel::Sms
+      'sms' => Channel::Sms,
+      'zaphub' => Channel::Zaphub
     }[permitted_params[:channel][:type]]
+  end
+
+  def account_channels_method
+    case permitted_params[:channel][:type]
+    when 'web_widget'
+      Current.account.web_widgets
+    when 'api'
+      Current.account.api_channels
+    when 'email'
+      Current.account.email_channels
+    when 'line'
+      Current.account.line_channels
+    when 'telegram'
+      Current.account.telegram_channels
+    when 'whatsapp'
+      Current.account.whatsapp_channels
+    when 'sms'
+      Current.account.sms_channels
+    when 'zaphub'
+      Current.account.zaphub_channels
+    end
   end
 
   def get_channel_attributes(channel_type)

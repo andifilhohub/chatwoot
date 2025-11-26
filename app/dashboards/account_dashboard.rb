@@ -27,6 +27,7 @@ class AccountDashboard < Administrate::BaseDashboard
   ATTRIBUTE_TYPES = {
     id: Field::Number.with_options(searchable: true),
     name: Field::String.with_options(searchable: true),
+    cnpj: Field::String,
     created_at: Field::DateTime,
     updated_at: Field::DateTime,
     users: CountField,
@@ -64,6 +65,7 @@ class AccountDashboard < Administrate::BaseDashboard
   SHOW_PAGE_ATTRIBUTES = (%i[
     id
     name
+    cnpj
     created_at
     updated_at
     locale
@@ -85,6 +87,7 @@ class AccountDashboard < Administrate::BaseDashboard
                                end
   FORM_ATTRIBUTES = (%i[
     name
+    cnpj
     locale
     status
   ] + enterprise_form_attributes).freeze
@@ -118,6 +121,7 @@ class AccountDashboard < Administrate::BaseDashboard
   # Reference: https://github.com/thoughtbot/administrate/pull/2356/files#diff-4e220b661b88f9a19ac527c50d6f1577ef6ab7b0bed2bfdf048e22e6bfa74a05R204
   def permitted_attributes(action)
     attrs = super + [limits: {}]
+    attrs << :cnpj
 
     # Add manually_managed_features to permitted attributes only for Genius Cloud
     attrs << { manually_managed_features: [] } if ChatwootApp.chatwoot_cloud?

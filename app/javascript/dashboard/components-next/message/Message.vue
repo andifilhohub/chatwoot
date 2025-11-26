@@ -10,6 +10,7 @@ import { LocalStorage } from 'shared/helpers/localStorage';
 import { ACCOUNT_EVENTS } from 'dashboard/helper/AnalyticsHelper/events';
 import { LOCAL_STORAGE_KEYS } from 'dashboard/constants/localStorage';
 import { BUS_EVENTS } from 'shared/constants/busEvents';
+import { useInbox } from 'dashboard/composables/useInbox';
 import {
   MESSAGE_TYPES,
   ATTACHMENT_TYPES,
@@ -305,7 +306,13 @@ const componentToRender = computed(() => {
   if (Array.isArray(props.attachments) && props.attachments.length === 1) {
     const fileType = props.attachments[0].fileType;
 
-    if (!props.content) {
+    // Don't use ImageBubble for stickers - they should use TextBubble with small ImageChip
+    const isSticker = props.contentType === CONTENT_TYPES.STICKER;
+
+    // Treat placeholder content like [Image], [Video], etc. as no content (but not stickers)
+    const isPlaceholderContent = !isSticker && props.content && /^\[(Image|Video|Audio|Document|File)\]$/i.test(props.content.trim());
+
+    if (!props.content || isPlaceholderContent) {
       if (fileType === ATTACHMENT_TYPES.IMAGE) return ImageBubble;
       if (fileType === ATTACHMENT_TYPES.FILE) return FileBubble;
       if (fileType === ATTACHMENT_TYPES.AUDIO) return AudioBubble;
@@ -341,6 +348,9 @@ const payloadForContextMenu = computed(() => {
   };
 });
 
+const { inbox } = useInbox(props.inboxId);
+const isZaphubChannel = computed(() => inbox.value?.channelType === 'Channel::Zaphub');
+
 const contextMenuEnabledOptions = computed(() => {
   const hasText = !!props.content;
   const hasAttachments = !!(props.attachments && props.attachments.length > 0);
@@ -356,6 +366,13 @@ const contextMenuEnabledOptions = computed(() => {
       (hasText || hasAttachments) &&
       !isFailedOrProcessing &&
       !isMessageDeleted.value,
+    edit:
+      isZaphubChannel.value &&
+      isOutgoing &&
+      hasText &&
+      !isFailedOrProcessing &&
+      !isMessageDeleted.value &&
+      !!props.sourceId,
     cannedResponse: isOutgoing && hasText && !isMessageDeleted.value,
     copyLink: !isFailedOrProcessing,
     translate: !isFailedOrProcessing && !isMessageDeleted.value && hasText,

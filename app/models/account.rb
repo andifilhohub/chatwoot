@@ -4,6 +4,7 @@
 #
 #  id                    :integer          not null, primary key
 #  auto_resolve_duration :integer
+#  cnpj                  :string
 #  custom_attributes     :jsonb
 #  domain                :string(100)
 #  feature_flags         :bigint           default(0), not null
@@ -77,6 +78,7 @@ class Account < ApplicationRecord
   has_many :email_channels, dependent: :destroy_async, class_name: '::Channel::Email'
   has_many :facebook_pages, dependent: :destroy_async, class_name: '::Channel::FacebookPage'
   has_many :instagram_channels, dependent: :destroy_async, class_name: '::Channel::Instagram'
+  has_many :zaphub_channels, dependent: :destroy_async, class_name: '::Channel::Zaphub'
   has_many :hooks, dependent: :destroy_async, class_name: 'Integrations::Hook'
   has_many :inboxes, dependent: :destroy_async
   has_many :labels, dependent: :destroy_async

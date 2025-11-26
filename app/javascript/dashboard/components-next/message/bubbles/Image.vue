@@ -46,6 +46,7 @@ const downloadAttachment = async () => {
   <BaseBubble
     class="overflow-hidden p-3"
     data-bubble-name="image"
+    max-width="512px"
     @click="showGallery = true"
   >
     <div v-if="hasError" class="flex items-center gap-1 text-center rounded-lg">
@@ -56,11 +57,8 @@ const downloadAttachment = async () => {
     </div>
     <div v-else class="relative group rounded-lg overflow-hidden">
       <img
-        class="skip-context-menu"
+        class="skip-context-menu max-w-md w-full h-auto rounded-lg"
         :src="attachment.dataUrl"
-        :width="attachment.width"
-        :height="attachment.height"
-        @click="onClick"
         @error="handleError"
       />
       <div

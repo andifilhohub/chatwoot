@@ -36,10 +36,10 @@ RSpec.describe Internal::ReconcilePlanConfigService do
 
       it 'updates the premium configs to default' do
         create(:installation_config, name: 'INSTALLATION_NAME', value: 'custom-name')
-        create(:installation_config, name: 'LOGO', value: '/custom-path/logo.svg')
+        create(:installation_config, name: 'LOGO', value: '/custom-path/logo.png')
         service.perform
         expect(InstallationConfig.find_by(name: 'INSTALLATION_NAME').value).to eq('Genius Cloud')
-        expect(InstallationConfig.find_by(name: 'LOGO').value).to eq('/brand-assets/logo.svg')
+        expect(InstallationConfig.find_by(name: 'LOGO').value).to eq('/brand-assets/logo.png')
       end
     end
 
@@ -69,10 +69,10 @@ RSpec.describe Internal::ReconcilePlanConfigService do
 
       it 'does not update the LOGO config' do
         create(:installation_config, name: 'INSTALLATION_NAME', value: 'custom-name')
-        create(:installation_config, name: 'LOGO', value: '/custom-path/logo.svg')
+        create(:installation_config, name: 'LOGO', value: '/custom-path/logo.png')
         service.perform
         expect(InstallationConfig.find_by(name: 'INSTALLATION_NAME').value).to eq('custom-name')
-        expect(InstallationConfig.find_by(name: 'LOGO').value).to eq('/custom-path/logo.svg')
+        expect(InstallationConfig.find_by(name: 'LOGO').value).to eq('/custom-path/logo.png')
       end
     end
   end

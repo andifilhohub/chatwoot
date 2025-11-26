@@ -1,0 +1,22 @@
+{
+  "PDV": {
+    "TITLE": "Ponto de Venda",
+    "PRODUCTS": "Produtos",
+    "CHECKOUT": "Finalizar",
+    "SEARCH_PRODUCTS": "Buscar produtos...",
+    "ALL_CATEGORIES": "Todos",
+    "NO_PRODUCTS_FOUND": "Nenhum produto encontrado",
+    "ADD_TO_CART": "Adicionar ao Carrinho",
+    "OUT_OF_STOCK": "Sem Estoque",
+    "EMPTY_CART": "Seu carrinho está vazio",
+    "DISCOUNT": "Desconto",
+    "DISCOUNT_PLACEHOLDER": "0",
+    "PAYMENT_METHOD": "Forma de Pagamento",
+    "NOTES": "Observações",
+    "NOTES_PLACEHOLDER": "Adicione observações sobre esta venda...",
+    "SUBTOTAL": "Subtotal",
+    "TOTAL": "Total",
+    "FINALIZE_SALE": "Finalizar Venda",
+    "CLEAR_CART": "Limpar Carrinho"
+  }
+}

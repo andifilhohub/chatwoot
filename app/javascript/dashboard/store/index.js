@@ -58,6 +58,7 @@ import copilotMessages from './captain/copilotMessages';
 import captainScenarios from './captain/scenarios';
 import captainTools from './captain/tools';
 import internalChat from './modules/internalChat';
+import integrahubProducts from './modules/integrahubProducts';
 
 const plugins = [];
 
@@ -121,6 +122,7 @@ export default createStore({
     captainScenarios,
     captainTools,
     internalChat,
+    integrahubProducts,
   },
   plugins,
 });

@@ -266,8 +266,9 @@
       }
     },
     "SIDEBAR": {
-      "CONTACT": "Contatos",
-      "COPILOT": "Copiloto"
+      "CONTACT": "Contato",
+      "COPILOT": "Copiloto",
+      "PDV": "PDV"
     }
   },
   "EMAIL_TRANSCRIPT": {

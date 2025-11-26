@@ -94,6 +94,7 @@ class ActionCableConnector extends BaseActionCableConnector {
   onLogout = () => AuthAPI.logout();
 
   onMessageCreated = data => {
+    console.log('🔔 [ActionCable] message.created event received:', data);
     const {
       conversation: { last_activity_at: lastActivityAt },
       conversation_id: conversationId,

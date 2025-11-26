@@ -68,6 +68,8 @@ module Chatwoot
 
     # Disable PDF/video preview generation as we don't use them
     config.active_storage.previewers = []
+    # Prefer MiniMagick for variants to avoid native libvips dependency during installs
+    config.active_storage.variant_processor = :mini_magick
   end
 
   def self.config

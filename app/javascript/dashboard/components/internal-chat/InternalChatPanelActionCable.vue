@@ -11,7 +11,7 @@
       @click.stop
     >
       <!-- Sidebar -->
-  <div class="w-80 min-w-[320px] max-w-[320px] bg-n-solid-2 border-r border-n-weak flex flex-col internal-chat-sidebar">
+      <div class="w-80 min-w-[320px] max-w-[320px] bg-n-solid-2 border-r border-n-weak flex flex-col">
         <div class="px-6 py-4 border-b border-n-weak h-[84px] flex items-center">
           <div>
             <h3 class="text-lg font-semibold text-n-slate-12 leading-6">
@@ -63,7 +63,7 @@
               {{ $t('INTERNAL_CHAT.ROOMS.TEAMS') }}
             </h4>
             <div v-if="teamChats.length > 0">
-              <div v-for="team in teamChats" :key="team.id" class="mb-2">
+              <div v-for="team in teamChats" :key="team.id">
                 <div
                   @click="selectChatMethod('team', team.id)"
                   class="flex items-center p-3 rounded-xl cursor-pointer transition-all duration-200 group hover:shadow-md"
@@ -73,7 +73,7 @@
                       : 'bg-n-solid-3 hover:bg-n-solid-4 text-n-slate-12 hover:scale-[1.02]'
                   "
                 >
-                  <div class="w-10 h-10 bg-woot-600 rounded-full flex items-center justify-center text-white text-sm font-medium mr-3 shadow-inner">
+                  <div class="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-medium mr-3 shadow-inner">
                     {{ team.name.charAt(0).toUpperCase() }}
                   </div>
                   <div class="flex-1">
@@ -84,7 +84,7 @@
                       </span>
                     </div>
                   </div>
-                  <div v-if="selectedChatType !== 'team' || selectedChatId !== team.id" class="w-2 h-2 bg-woot-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                  <div v-if="selectedChatType !== 'team' || selectedChatId !== team.id" class="w-2 h-2 bg-blue-400 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 </div>
               </div>
             </div>
@@ -202,7 +202,7 @@
         </div>
 
         <!-- Área de mensagens -->
-  <div class="flex-1 overflow-y-scroll p-4 space-y-4 internal-chat-messages-scroll" ref="messageContainer" style="height: 500px; max-height: 500px;">
+        <div class="flex-1 overflow-y-scroll p-4 space-y-4" ref="messageContainer" style="height: 500px; max-height: 500px;">
           <div v-if="messages.length === 0" class="flex-1 flex items-center justify-center">
             <div class="text-center">
               <div class="w-16 h-16 mx-auto mb-4 bg-n-solid-3 rounded-full flex items-center justify-center">

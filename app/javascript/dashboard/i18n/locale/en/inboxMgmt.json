@@ -343,6 +343,54 @@
           "ERROR_MESSAGE": "We were not able to create the voice channel"
         }
       },
+      "ZAPHUB_CHANNEL": {
+        "TITLE": "ZapHub WhatsApp",
+        "DESC": "Connect your WhatsApp using ZapHub API and start supporting your customers.",
+        "CHANNEL_NAME": {
+          "LABEL": "Channel Name",
+          "PLACEHOLDER": "Please enter a channel name (e.g., Support WhatsApp)",
+          "ERROR": "This field is required"
+        },
+        "API_KEY": {
+          "LABEL": "API Key",
+          "SUBTITLE": "Your ZapHub API authentication key",
+          "PLACEHOLDER": "Enter your ZapHub API key",
+          "ERROR": "This field is required"
+        },
+        "BASE_URL": {
+          "LABEL": "Base URL",
+          "SUBTITLE": "ZapHub API base URL (e.g., http://localhost:3000/api/v1)",
+          "PLACEHOLDER": "http://localhost:3000/api/v1",
+          "ERROR": "This field is required"
+        },
+        "WEBHOOK_URL": {
+          "LABEL": "Webhook URL (Optional)",
+          "SUBTITLE": "Custom webhook URL for receiving events from ZapHub",
+          "PLACEHOLDER": "https://your-domain.com/webhook"
+        },
+        "SUBMIT_BUTTON": "Create Inbox",
+        "QR_CODE": {
+          "TITLE": "Scan QR Code",
+          "SUBTITLE": "Open WhatsApp on your phone and scan this QR code to connect",
+          "WAITING": "Waiting for QR code scan..."
+        },
+        "CONNECTED": {
+          "TITLE": "WhatsApp Connected!",
+          "MESSAGE": "Your WhatsApp is now connected and ready to receive messages."
+        },
+        "LOADING": {
+          "TITLE": "Creating ZapHub session...",
+          "SUBTITLE": "Hang tight for a few seconds while we connect."
+        },
+        "ERROR_BANNER": {
+          "TITLE": "ZapHub connection failed",
+          "RETRY": "Try again"
+        },
+        "API": {
+          "ERROR_MESSAGE": "We were not able to create the ZapHub channel",
+          "SUCCESS_MESSAGE": "WhatsApp connected successfully!"
+        }
+      },
       "API_CHANNEL": {
         "TITLE": "API Channel",
         "DESC": "Integrate with API channel and start supporting your customers.",
@@ -439,6 +487,10 @@
           "WHATSAPP": {
             "TITLE": "WhatsApp",
             "DESCRIPTION": "Support your customers on WhatsApp"
+          },
+          "ZAPHUB": {
+            "TITLE": "ZapHub WhatsApp",
+            "DESCRIPTION": "Connect WhatsApp using ZapHub API"
           },
           "EMAIL": {
             "TITLE": "Email",

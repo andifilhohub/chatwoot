@@ -1,0 +1,6 @@
+anderson@anderson:~/workspace/zaphub$ curl -s -X POST http://localhost:3001/api/v1/sessions -H "Content-Type: application/json" -d '{"label":"Teste","webhook_url":"https://webhook.site/test"}' | python3 -c "import sys,json,time; d=json.load(sys.stdin); sid=d['data']['id']; print(f'✅ Sessão criada: {sid}'); print('⏳ Aguardando 5 segundos...'); time.sleep(5); import urllib.request; qr=json.loads(urllib.request.urlopen(f'http://localhost:3001/api/v1/sessions/{sid}/qr?format=raw').read()); print(f'✅ QR Code: {qr[\"data\"][\"qr_code\"][:50]}...'); status=json.loads(urllib.request.urlopen(f'http://localhost:3001/api/v1/sessions/{sid}/status').read()); print(f'✅ Status: {status[\"data\"][\"db_status\"]} | QR disponível: {status[\"data\"][\"has_qr_code\"]}')"
+✅ Sessão criada: e42b03d8-e1ed-46ae-9608-8d648d642489
+⏳ Aguardando 5 segundos...
+✅ QR Code: 2@IychDWPFYN3T7jPavBbF9avkebm4CwELp4Z7MPdjZne8iFx9...
+✅ Status: qr_pending | QR disponível: True
+anderson@anderson:~/workspace/zaphub$ 

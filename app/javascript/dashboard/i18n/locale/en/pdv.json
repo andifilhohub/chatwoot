@@ -1,0 +1,22 @@
+{
+  "PDV": {
+    "TITLE": "Point of Sale",
+    "PRODUCTS": "Products",
+    "CHECKOUT": "Checkout",
+    "SEARCH_PRODUCTS": "Search products...",
+    "ALL_CATEGORIES": "All",
+    "NO_PRODUCTS_FOUND": "No products found",
+    "ADD_TO_CART": "Add to Cart",
+    "OUT_OF_STOCK": "Out of Stock",
+    "EMPTY_CART": "Your cart is empty",
+    "DISCOUNT": "Discount",
+    "DISCOUNT_PLACEHOLDER": "0",
+    "PAYMENT_METHOD": "Payment Method",
+    "NOTES": "Notes",
+    "NOTES_PLACEHOLDER": "Add notes about this sale...",
+    "SUBTOTAL": "Subtotal",
+    "TOTAL": "Total",
+    "FINALIZE_SALE": "Finalize Sale",
+    "CLEAR_CART": "Clear Cart"
+  }
+}

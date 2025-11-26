@@ -79,18 +79,32 @@ RSpec.describe Attachment do
     it 'generates thumb_url for image attachments' do
       attachment = message.attachments.create!(account_id: message.account_id, file_type: :image)
       attachment.file.attach(io: StringIO.new('fake image'), filename: 'test.jpg', content_type: 'image/jpeg')
+      allow(attachment.file).to receive(:representable?).and_return(true)
+      representation = double
+      allow(attachment.file).to receive(:representation).and_return(representation)
+      allow(attachment).to receive(:url_for).and_return('thumb-url')
 
-      expect(attachment.thumb_url).to be_present
+      expect(attachment.thumb_url).to eq('thumb-url')
     end
 
     it 'handles unrepresentable images gracefully' do
       attachment = message.attachments.create!(account_id: message.account_id, file_type: :image)
       attachment.file.attach(io: StringIO.new('fake image'), filename: 'test.jpg', content_type: 'image/jpeg')
-
+      allow(attachment.file).to receive(:representable?).and_return(true)
       allow(attachment.file).to receive(:representation).and_raise(ActiveStorage::UnrepresentableError.new('Cannot represent'))
+      allow(attachment).to receive(:file_url).and_return('fallback-url')
 
       expect(Rails.logger).to receive(:warn).with(/Unrepresentable image attachment: #{attachment.id}/)
-      expect(attachment.thumb_url).to eq('')
+      expect(attachment.thumb_url).to eq('fallback-url')
+    end
+
+    it 'falls back to file_url when blob is not representable' do
+      attachment = message.attachments.create!(account_id: message.account_id, file_type: :image)
+      attachment.file.attach(io: StringIO.new('fake image'), filename: 'test.jpg', content_type: 'image/jpeg')
+      allow(attachment.file).to receive(:representable?).and_return(false)
+      allow(attachment).to receive(:file_url).and_return('fallback-url')
+
+      expect(attachment.thumb_url).to eq('fallback-url')
     end
   end
 

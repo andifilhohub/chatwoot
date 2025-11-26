@@ -270,6 +270,7 @@ export default {
         this.isAWebWidgetInbox ||
         this.isAFacebookInbox ||
         this.isAWhatsAppChannel ||
+        this.isAZaphubChannel ||
         this.isAPIInbox ||
         this.isAnEmailChannel ||
         this.isASmsInbox ||

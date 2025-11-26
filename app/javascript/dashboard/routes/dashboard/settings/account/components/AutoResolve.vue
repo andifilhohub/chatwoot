@@ -17,7 +17,7 @@ const { t } = useI18n();
 const duration = ref(0);
 const unit = ref(DURATION_UNITS.MINUTES);
 const message = ref('');
-const labelToApply = ref({});
+const labelToApply = ref(undefined);
 const ignoreWaiting = ref(false);
 const isEnabled = ref(false);
 const isSubmitting = ref(false);
@@ -139,6 +139,7 @@ const toggleAutoResolve = async () => {
 
     <form class="grid gap-5" @submit.prevent="handleSubmit">
       <WithLabel
+        name="inactivity-duration"
         :label="t('GENERAL_SETTINGS.FORM.AUTO_RESOLVE.DURATION.LABEL')"
         :help-message="t('GENERAL_SETTINGS.FORM.AUTO_RESOLVE.DURATION.HELP')"
       >
@@ -147,13 +148,14 @@ const toggleAutoResolve = async () => {
           <DurationInput
             v-model="duration"
             v-model:unit="unit"
-            min="0"
-            max="1438560"
+            :min="0"
+            :max="1438560"
             class="w-full"
           />
         </div>
       </WithLabel>
       <WithLabel
+        name="auto-resolve-message"
         :label="t('GENERAL_SETTINGS.FORM.AUTO_RESOLVE.MESSAGE.LABEL')"
         :help-message="t('GENERAL_SETTINGS.FORM.AUTO_RESOLVE.MESSAGE.HELP')"
       >
@@ -165,7 +167,7 @@ const toggleAutoResolve = async () => {
           "
         />
       </WithLabel>
-      <WithLabel :label="t('GENERAL_SETTINGS.FORM.AUTO_RESOLVE.PREFERENCES')">
+      <WithLabel name="auto-resolve-preferences" :label="t('GENERAL_SETTINGS.FORM.AUTO_RESOLVE.PREFERENCES')">
         <div
           class="rounded-xl border border-n-weak bg-n-solid-1 w-full text-sm text-n-slate-12 divide-y divide-n-weak"
         >

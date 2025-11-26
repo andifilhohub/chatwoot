@@ -14,6 +14,7 @@ import ConversationBox from 'dashboard/components/widgets/conversation/Conversat
 import InboxEmptyState from './InboxEmptyState.vue';
 import Spinner from 'dashboard/components-next/spinner/Spinner.vue';
 import ConversationSidebar from 'dashboard/components/widgets/conversation/ConversationSidebar.vue';
+import PdvSidebar from 'dashboard/components/widgets/conversation/PdvSidebar.vue';
 
 const route = useRoute();
 const router = useRouter();
@@ -71,6 +72,18 @@ const isContactPanelOpen = computed(() => {
     const { is_contact_sidebar_open: isContactSidebarOpen } = uiSettings.value;
     return isContactSidebarOpen;
   }
+  return false;
+});
+
+const isPdvPanelOpen = computed(() => {
+  if (currentChat.value.id) {
+    const { is_pdv_panel_open: isPdvPanelOpenValue } = uiSettings.value;
+    console.log('🛒 InboxView: isPdvPanelOpen computed - currentChat.id:', currentChat.value.id);
+    console.log('🛒 InboxView: isPdvPanelOpen computed - isPdvPanelOpenValue:', isPdvPanelOpenValue);
+    console.log('🛒 InboxView: isPdvPanelOpen computed - uiSettings:', uiSettings.value);
+    return isPdvPanelOpenValue;
+  }
+  console.log('🛒 InboxView: isPdvPanelOpen computed - NO currentChat.id');
   return false;
 });
 
@@ -216,6 +229,19 @@ onMounted(async () => {
         </ConversationBox>
         <ConversationSidebar
           v-if="isContactPanelOpen"
+          :current-chat="currentChat"
+        />
+        <!-- DEBUG: PDV Panel Test -->
+        <div
+          v-if="isPdvPanelOpen"
+          style="position: fixed; top: 0; right: 0; width: 300px; height: 200px; background: red; color: white; z-index: 9999; padding: 20px;"
+        >
+          <h3>PDV DEBUG PANEL</h3>
+          <p>isPdvPanelOpen: {{ isPdvPanelOpen }}</p>
+          <p>currentChat.id: {{ currentChat.id }}</p>
+        </div>
+        <PdvSidebar
+          v-if="isPdvPanelOpen"
           :current-chat="currentChat"
         />
       </div>

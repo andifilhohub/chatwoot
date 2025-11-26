@@ -114,7 +114,7 @@ class Message < ApplicationRecord
                                          :external_created_at, :story_sender, :story_id, :external_error,
                                          :translations, :in_reply_to_external_id, :is_unsupported, :data], coder: JSON
 
-  store :external_source_ids, accessors: [:slack], coder: JSON, prefix: :external_source_id
+  store :external_source_ids, accessors: [:slack, :zaphub], coder: JSON, prefix: :external_source_id
 
   scope :created_since, ->(datetime) { where('created_at > ?', datetime) }
   scope :chat, -> { where.not(message_type: :activity).where(private: false) }

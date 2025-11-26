@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2025_10_30_094901) do
+ActiveRecord::Schema[7.1].define(version: 2025_11_30_000000) do
   # These extensions should be enabled to support this database
   enable_extension "pg_stat_statements"
   enable_extension "pg_trgm"
@@ -73,6 +73,7 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_30_094901) do
     t.integer "status", default: 0
     t.jsonb "internal_attributes", default: {}, null: false
     t.jsonb "settings", default: {}
+    t.string "cnpj"
     t.index ["status"], name: "index_accounts_on_status"
   end
 
@@ -557,6 +558,22 @@ ActiveRecord::Schema[7.1].define(version: 2025_10_30_094901) do
     t.jsonb "message_templates", default: {}
     t.datetime "message_templates_last_updated", precision: nil
     t.index ["phone_number"], name: "index_channel_whatsapp_on_phone_number", unique: true
+  end
+
+  create_table "channel_zaphub", force: :cascade do |t|
+    t.integer "account_id", null: false
+    t.string "api_key"
+    t.string "base_url"
+    t.string "session_id"
+    t.string "webhook_url"
+    t.text "qr_code_data"
+    t.string "status", default: "pending"
+    t.jsonb "additional_attributes", default: {}
+    t.datetime "connected_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["account_id"], name: "index_channel_zaphub_on_account_id"
+    t.index ["session_id"], name: "index_channel_zaphub_on_session_id", unique: true
   end
 
   create_table "contact_inboxes", force: :cascade do |t|
