@@ -122,6 +122,8 @@ Genius Cloud now supports 1-Click deployment to DigitalOcean as a kubernetes app
 
 For other supported options, checkout our [deployment page](https://chatwoot.com/deploy).
 
+- Running two Chatwoot versions on the same server? Follow the [multi-instance guide](deployment/MULTI_INSTANCE.md) to keep service names, directories, and Ruby versions isolated.
+
 ## Security
 
 Looking to report a vulnerability? Please refer our [SECURITY.md](./SECURITY.md) file.
