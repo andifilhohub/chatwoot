@@ -9,10 +9,10 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
   def create
     # Log do JSON completo exatamente como recebido do Zaphub
     body_content = raw_request_body
-    
-    Rails.logger.info "[Zaphub] JSON completo recebido do webhook:"
+
+    Rails.logger.info '[Zaphub] JSON completo recebido do webhook:'
     Rails.logger.info body_content
-    
+
     process_webhook_payload
     head :ok
   rescue StandardError => e
@@ -61,11 +61,11 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
 
     signature_header = request.headers['X-ZapHub-Signature'] || request.headers['HTTP_X_ZAPHUB_SIGNATURE']
 
-    unless valid_zaphub_signature?(signature_header, secret)
-      Rails.logger.warn("[Zaphub] Invalid webhook signature for channel #{@channel.id}")
-      head :unauthorized
-      return
-    end
+    return if valid_zaphub_signature?(signature_header, secret)
+
+    Rails.logger.warn("[Zaphub] Invalid webhook signature for channel #{@channel.id}")
+    head :unauthorized
+    return
   end
 
   def valid_zaphub_signature?(signature_header, secret)
@@ -75,12 +75,15 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     digest = OpenSSL::HMAC.digest(OpenSSL::Digest.new('SHA256'), secret, payload)
     expected_hex = digest.unpack1('H*')
     expected_base64 = Base64.strict_encode64(digest)
+    expected_base64_urlsafe = Base64.urlsafe_encode64(digest)
 
     header_value = signature_from_header(signature_header)
     return false if header_value.blank?
 
+    log_signature_debug(header_value, expected_hex, expected_base64, expected_base64_urlsafe)
+
     return true if compare_hex_signature(expected_hex, header_value)
-    return true if compare_base64_signature(expected_base64, header_value)
+    return true if compare_base64_signature(expected_base64, expected_base64_urlsafe, header_value)
 
     false
   rescue StandardError => e
@@ -92,8 +95,10 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     value = signature_header.to_s.strip
     return '' if value.blank?
 
-    value = value.split('=', 2).last if value.include?('=')
-    value.strip
+    # Preserve padding when signature is raw Base64 (e.g. ends with "=")
+    return value unless value.downcase.start_with?('sha256=')
+
+    value.split('=', 2).last.to_s.strip
   end
 
   def compare_hex_signature(expected, actual)
@@ -103,11 +108,34 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     ActiveSupport::SecurityUtils.secure_compare(expected, normalized_actual)
   end
 
-  def compare_base64_signature(expected, actual)
+  def compare_base64_signature(expected, expected_urlsafe, actual)
     return false unless actual.present?
-    return false unless actual.length == expected.length
 
-    ActiveSupport::SecurityUtils.secure_compare(expected, actual)
+    normalized_actual = normalize_base64(actual)
+
+    normalized_expected = normalize_base64(expected)
+    normalized_expected_urlsafe = normalize_base64(expected_urlsafe)
+
+    return true if normalized_actual.length == normalized_expected.length &&
+                   ActiveSupport::SecurityUtils.secure_compare(normalized_expected, normalized_actual)
+
+    return true if normalized_actual.length == normalized_expected_urlsafe.length &&
+                   ActiveSupport::SecurityUtils.secure_compare(normalized_expected_urlsafe, normalized_actual)
+
+    false
+  end
+
+  def normalize_base64(value)
+    normalized = value.to_s.tr('-_', '+/')
+    padding = (4 - (normalized.length % 4)) % 4
+    normalized.ljust(normalized.length + padding, '=')
+  end
+
+  def log_signature_debug(header_value, expected_hex, expected_base64, expected_base64_urlsafe)
+    return unless Rails.env.development? || Rails.env.test?
+
+    Rails.logger.info("[Zaphub] Signature debug | header=#{header_value} | expected_hex=#{expected_hex} | " \
+                      "expected_b64=#{expected_base64} | expected_b64_urlsafe=#{expected_base64_urlsafe}")
   end
 
   def process_webhook_payload
@@ -159,6 +187,16 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     return if message_data.blank?
 
     sent_by_us = message_sent_by_us?(message_data, event_type)
+    message_identifier = extract_message_identifier(message_data)
+    wa_message_identifier = extract_wa_message_identifier(message_data)
+
+    if sent_by_us && (message_identifier.present? || wa_message_identifier.present?)
+      existing_message = find_message_by_identifier(message_identifier) if message_identifier.present?
+      existing_message ||= find_message_by_identifier(wa_message_identifier) if wa_message_identifier.present?
+      return existing_message if handle_existing_outgoing_message(existing_message, message_identifier, wa_message_identifier, message_data,
+                                                                  event_type)
+    end
+
     sender_identifier = message_sender_identifier(message_data, sent_by_us)
     chat_identifier = message_chat_identifier(message_data, sent_by_us, sender_identifier)
 
@@ -176,7 +214,7 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     send_zaphub_received_event(message, message_data) unless sent_by_us
   end
 
-  def find_or_create_contact_inbox(message_data, sent_by_us, chat_identifier, sender_identifier)
+  def find_or_create_contact_inbox(message_data, _sent_by_us, chat_identifier, sender_identifier)
     unless @inbox.present?
       Rails.logger.warn("[Zaphub] Cannot create/find contact_inbox because inbox is nil (channel_id=#{@channel&.id})")
       return nil
@@ -216,7 +254,7 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     contact_inbox
   end
 
-  def find_or_create_conversation(contact_inbox, contact, message_data, sent_by_us, chat_identifier)
+  def find_or_create_conversation(contact_inbox, contact, _message_data, _sent_by_us, chat_identifier)
     conversation = if @inbox.lock_to_single_conversation
                      contact_inbox.conversations.last
                    else
@@ -295,26 +333,24 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     attachments = process_attachments(message_data)
 
     message = Message.new(message_params)
-    
+
     # Attach files before saving to ensure tempfiles are still open
     if attachments.present?
       attach_downloaded_files(message, attachments)
       # Reload to ensure attachments are properly associated
       message.attachments.reload if message.persisted?
     end
-    
+
     message.save!
-    
+
     # Verify attachments were saved correctly
     if message.attachments.present?
       message.attachments.each do |att|
-        unless att.file.attached?
-          Rails.logger.error "[Zaphub] Attachment #{att.id} file not attached after save!"
-        end
+        Rails.logger.error "[Zaphub] Attachment #{att.id} file not attached after save!" unless att.file.attached?
       end
       log_attachment_urls(message)
     end
-    
+
     message
   end
 
@@ -330,7 +366,7 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
   end
 
   def extract_message_content(message_data)
-    content = case message_data[:type]
+    case message_data[:type]
     when 'text'
       message_data[:text] || message_data.dig(:content, :text)
     when 'image'
@@ -349,7 +385,6 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     else
       message_data.dig(:content, :text) || "[#{message_data[:type] || 'unknown'} message]"
     end
-    content
   end
 
   def process_attachments(message_data)
@@ -399,31 +434,31 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
       if file_io.respond_to?(:rewind)
         file_io.rewind
       elsif file_io.respond_to?(:closed?) && file_io.closed?
-        Rails.logger.error "[Zaphub] attachment file_io is closed, cannot attach"
+        Rails.logger.error '[Zaphub] attachment file_io is closed, cannot attach'
         next
       end
-      
+
       # Verify file_io is readable
       unless file_io.respond_to?(:read)
-        Rails.logger.error "[Zaphub] file_io does not respond to :read"
+        Rails.logger.error '[Zaphub] file_io does not respond to :read'
         next
       end
 
       attachment = message.attachments.build(account_id: message.account_id, file_type: file_type)
-      
+
       # Attach the file - ActiveStorage will read immediately
       begin
         # Ensure file is at the beginning
         file_io.rewind if file_io.respond_to?(:rewind)
-        
+
         attachment.file.attach(io: file_io, filename: filename, content_type: content_type)
-        
+
         # Save the message to persist the attachment
         message.save! unless message.persisted?
-        
+
         # Reload to get the persisted blob
         attachment.reload if attachment.persisted?
-        
+
         # Verify attachment was successful
         if attachment.file.attached?
           blob = attachment.file.blob
@@ -431,9 +466,9 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
         else
           Rails.logger.error "[Zaphub] File attach failed: filename=#{filename}, content_type=#{content_type}"
         end
-      rescue StandardError => attach_error
-        Rails.logger.error "[Zaphub] Failed to attach file: #{attach_error.message}"
-        Rails.logger.error attach_error.backtrace.join("\n")
+      rescue StandardError => e
+        Rails.logger.error "[Zaphub] Failed to attach file: #{e.message}"
+        Rails.logger.error e.backtrace.join("\n")
         next
       end
     rescue StandardError => e
@@ -447,6 +482,7 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     return if identifier.blank?
 
     number_part = identifier.split('@').first
+    number_part = number_part.split(':').first if number_part.include?(':')
     return if number_part.blank?
 
     # Group chats contain a hyphen separating owner/timestamp
@@ -468,7 +504,7 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
   def process_receipt_event(event_type)
     payload = zaphub_payload
     Rails.logger.info "[Zaphub] Processing receipt event: event_type=#{event_type}, payload=#{payload.inspect}"
-    
+
     # Zaphub can send receipts as an array or as a single object
     # Also check if data contains the receipt info
     receipts = Array.wrap(payload[:receipts])
@@ -484,38 +520,26 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
   end
 
   def apply_receipt_status(payload, fallback_event)
-    # Extract messageId from various possible locations
-    message_id = payload[:messageId] || payload[:message_id] || payload[:id] || payload.dig(:data, :messageId)
-    alt_message_id = payload[:waMessageId] || payload[:wa_message_id] || payload.dig(:data, :waMessageId)
-    
-    Rails.logger.info "[Zaphub] Processing receipt status: message_id=#{message_id}, payload=#{payload.inspect}, fallback_event=#{fallback_event}"
-    
-    return if message_id.blank? && alt_message_id.blank?
+    # Extract messageId from various possible locations (including waMessageId)
+    message_id = extract_message_identifier(payload)
+    wa_message_id = extract_wa_message_identifier(payload)
 
-    message = find_message_by_zaphub_ids(message_id, alt_message_id)
-    
+    Rails.logger.info "[Zaphub] Processing receipt status: message_id=#{message_id}, payload=#{payload.inspect}, fallback_event=#{fallback_event}"
+
+    return if message_id.blank? && wa_message_id.blank?
+
+    # Try to find by source_id first, then by external_source_id_zaphub
+    message = find_message_by_identifier(message_id)
+    message ||= find_message_by_identifier(wa_message_id)
     unless message
-      Rails.logger.warn "[Zaphub] Message not found for receipt: message_id=#{message_id}"
+      Rails.logger.warn "[Zaphub] Message not found for receipt: message_id=#{message_id || wa_message_id}"
       return
     end
 
-    # Extract status from event name (e.g., "message.receipt.read" -> "read")
-    # or from payload fields
-    status_from_event = extract_status_from_event_name(fallback_event)
-    raw_status = (payload[:status] || payload[:type] || status_from_event || fallback_event).to_s.downcase
-    
-    # Normalize status - prioritize specific patterns first
-    normalized_status = if raw_status.include?('receipt.read') || raw_status == 'read' || raw_status == 'message.read'
-                         'read'
-                       elsif raw_status.include?('receipt.delivered') || raw_status == 'delivered' || raw_status == 'message.delivered'
-                         'delivered'
-                       elsif raw_status.include?('receipt.sent') || raw_status == 'sent' || raw_status == 'message.sent'
-                         'sent'
-                       else
-                         raw_status
-                       end
+    raw_status = (payload[:status] || payload[:type] || fallback_event).to_s
+    normalized_status = normalize_status(raw_status, fallback_event)
 
-    Rails.logger.info "[Zaphub] Updating message #{message.id} status from #{message.status} to #{normalized_status} (raw: #{raw_status}) | source_id=#{message.source_id}"
+    Rails.logger.info "[Zaphub] Updating message #{message.id} status from #{message.status} to #{normalized_status} (raw: #{raw_status})"
 
     case normalized_status
     when 'read'
@@ -531,15 +555,99 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     end
   end
 
+  def find_message_by_identifier(message_id)
+    return nil if message_id.blank?
+
+    Message.find_by(source_id: message_id) ||
+      Message.find_by("external_source_ids ->> 'zaphub' = ?", message_id) ||
+      Message.find_by("external_source_ids ->> 'zaphub_wa' = ?", message_id)
+  end
+
+  def extract_message_identifier(payload)
+    wa_id = extract_wa_message_identifier(payload)
+    msg_id = payload[:messageId] || payload[:message_id] || payload[:id] || payload.dig(:data, :messageId)
+    wa_id.presence || msg_id
+  end
+
+  def extract_wa_message_identifier(payload)
+    payload[:waMessageId] || payload[:wa_message_id] || payload.dig(:data, :waMessageId)
+  end
+
   def extract_status_from_event_name(event_name)
     return nil if event_name.blank?
-    
+
     event_str = event_name.to_s.downcase
     return 'read' if event_str.include?('receipt.read') || event_str.include?('message.read')
     return 'delivered' if event_str.include?('receipt.delivered') || event_str.include?('message.delivered')
     return 'sent' if event_str.include?('receipt.sent') || event_str.include?('message.sent')
-    
+
     nil
+  end
+
+  def normalize_status(raw_status, fallback_event)
+    raw = (raw_status || extract_status_from_event_name(fallback_event) || fallback_event).to_s.downcase
+
+    return 'read' if raw.include?('receipt.read') || raw == 'read' || raw == 'message.read'
+    return 'delivered' if raw.include?('receipt.delivered') || raw == 'delivered' || raw == 'message.delivered'
+    return 'sent' if raw.include?('receipt.sent') || raw == 'sent' || raw == 'message.sent'
+    return 'received' if raw == 'received' || raw == 'message.received'
+
+    raw
+  end
+
+  def handle_existing_outgoing_message(existing_message, message_identifier, wa_message_identifier, message_data, event_type)
+    return false unless existing_message
+
+    backfill_message_identifier(existing_message, message_identifier, wa_message_identifier)
+    update_message_status_from_payload(existing_message, message_data, event_type)
+    true
+  end
+
+  def backfill_message_identifier(message, message_identifier, wa_message_identifier = nil)
+    return if message_identifier.blank? && wa_message_identifier.blank?
+
+    source_value = message.source_id.presence || message_identifier || wa_message_identifier
+    new_external_ids = message.external_source_ids || {}
+
+    new_external_ids['zaphub'] ||= (message.external_source_id_zaphub.presence || message_identifier)
+    new_external_ids['zaphub_wa'] ||= wa_message_identifier if wa_message_identifier.present?
+
+    message.update_columns(
+      source_id: source_value,
+      external_source_ids: new_external_ids
+    )
+  end
+
+  def fallback_outgoing_message(payload, message_identifier, wa_message_identifier)
+    chat_identifier = message_chat_identifier(payload, true, nil)
+    return nil if chat_identifier.blank? || @inbox.blank?
+
+    conversation = Conversation.where(inbox_id: @inbox.id)
+                               .where("additional_attributes ->> 'chat_id' = ?", chat_identifier)
+                               .order(created_at: :desc)
+                               .take
+    return nil unless conversation
+
+    conversation.messages
+                .where(message_type: :outgoing)
+                .where(source_id: [nil, message_identifier, wa_message_identifier].compact_blank)
+                .where("external_source_ids ->> 'zaphub' IS NULL OR external_source_ids ->> 'zaphub' = ?", message_identifier.to_s)
+                .order(created_at: :desc)
+                .take
+  end
+
+  def update_message_status_from_payload(message, message_data, fallback_event)
+    normalized_status = normalize_status(message_data[:status] || message_data[:type], fallback_event)
+    return if normalized_status.blank?
+
+    if %w[read delivered sent].include?(normalized_status)
+      Messages::StatusUpdateService.new(message, normalized_status).perform
+      Rails.logger.info "[Zaphub] Updated message #{message.id} status to #{normalized_status} from webhook event #{fallback_event}"
+    elsif normalized_status == 'received' && message.outgoing?
+      # Treat 'received' from ZapHub as delivered for outbound messages
+      Messages::StatusUpdateService.new(message, 'delivered').perform
+      Rails.logger.info "[Zaphub] Updated message #{message.id} status to delivered (from 'received') via webhook event #{fallback_event}"
+    end
   end
 
   def process_reaction_event
@@ -549,14 +657,13 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
   def process_message_edited_event
     payload = zaphub_payload
     data = payload[:data] || payload
-    
+
     message_id = data[:messageId] || data[:message_id] || data[:id]
     return if message_id.blank?
 
     Rails.logger.info "[Zaphub] Processing message edited event: message_id=#{message_id}"
 
-    message = find_message_by_zaphub_ids(message_id)
-    
+    message = find_message_by_identifier(message_id)
     unless message
       Rails.logger.warn "[Zaphub] Message not found for edit: message_id=#{message_id}"
       return
@@ -574,14 +681,13 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
   def process_message_deleted_event
     payload = zaphub_payload
     data = payload[:data] || payload
-    
+
     message_id = data[:messageId] || data[:message_id] || data[:id]
     return if message_id.blank?
 
     Rails.logger.info "[Zaphub] Processing message deleted event: message_id=#{message_id}"
 
-    message = find_message_by_zaphub_ids(message_id)
-    
+    message = find_message_by_identifier(message_id)
     unless message
       Rails.logger.warn "[Zaphub] Message not found for delete: message_id=#{message_id}"
       return
@@ -596,7 +702,7 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
       )
       message.attachments.destroy_all
     end
-    
+
     Rails.logger.info "[Zaphub] Message #{message.id} marked as deleted successfully"
   end
 
@@ -722,8 +828,9 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
 
   def zaphub_webhook_signature_secret
     @zaphub_webhook_signature_secret ||= begin
+      env_secret = ENV['WEBHOOK_SIGNATURE_SECRET'].presence || ENV['ZAPHUB_WEBHOOK_SIGNATURE_SECRET'].presence
       channel_secret = @channel&.api_key.presence
-      channel_secret.presence || ENV['WEBHOOK_SIGNATURE_SECRET'].presence || ENV['ZAPHUB_WEBHOOK_SIGNATURE_SECRET'].presence
+      env_secret.presence || channel_secret.presence
     end
   end
 
@@ -767,15 +874,17 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     identifiers << message_data[:chat_id]
     identifiers << message_data[:remoteJid]
 
-    identifiers = identifiers.compact_blank
+    identifiers = identifiers.compact_blank.map { |id| normalize_jid(id) }
     identifiers.first || "zaphub-unknown-#{SecureRandom.uuid}"
   end
 
   def message_chat_identifier(message_data, sent_by_us, fallback_identifier = nil)
-    message_data[:chatId] ||
-      message_data[:chat_id] ||
-      fallback_identifier ||
-      message_sender_identifier(message_data, sent_by_us)
+    raw = message_data[:chatId] ||
+          message_data[:chat_id] ||
+          fallback_identifier ||
+          message_sender_identifier(message_data, sent_by_us)
+
+    normalize_jid(raw)
   end
 
   def group_chat?(message_data)
@@ -785,6 +894,25 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
       ActiveModel::Type::Boolean.new.cast(message_data[:group]) ||
       message_data[:groupId].present? ||
       message_data[:chatId].to_s.include?('-')
+  end
+
+  def normalize_jid(value)
+    return value if value.blank?
+
+    jid = value.to_s
+    local, domain = jid.split('@', 2)
+    return jid if local.blank?
+
+    local = local.split(':').first
+    return jid if local.blank?
+
+    normalized_domain = if domain&.include?('g.us')
+                          'g.us'
+                        else
+                          's.whatsapp.net'
+                        end
+
+    "#{local}@#{normalized_domain}"
   end
 
   def log_attachment_urls(message)
