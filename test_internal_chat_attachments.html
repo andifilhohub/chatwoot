@@ -225,7 +225,7 @@
                 statusElement.textContent = 'Conectando...';
                 
                 // Simple WebSocket test to see if ActionCable is working
-                const ws = new WebSocket('ws://localhost:3000/cable');
+                const ws = new WebSocket('ws://localhost:3003/cable');
                 
                 ws.onopen = function() {
                     statusElement.textContent = 'Conectado (WebSocket OK)';

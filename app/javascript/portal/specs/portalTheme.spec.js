@@ -71,7 +71,7 @@ describe('portalThemeHelper', () => {
     beforeEach(() => {
       originalLocation = window.location;
       delete window.location;
-      window.location = new URL('http://localhost:3000/');
+      window.location = new URL('http://localhost:3003/');
       window.history.replaceState = vi.fn();
     });
 
@@ -86,13 +86,13 @@ describe('portalThemeHelper', () => {
 
     it('should remove theme query param from the URL', () => {
       window.location = new URL(
-        'http://localhost:3000/?theme=light&show_plain_layout=true'
+        'http://localhost:3003/?theme=light&show_plain_layout=true'
       );
       removeQueryParamsFromUrl('theme');
       expect(window.history.replaceState).toHaveBeenCalledWith(
         {},
         '',
-        'http://localhost:3000/?show_plain_layout=true'
+        'http://localhost:3003/?show_plain_layout=true'
       );
     });
   });

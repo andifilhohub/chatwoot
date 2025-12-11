@@ -80,6 +80,12 @@ class Api::V1::Accounts::Channels::ZaphubChannelsController < Api::V1::Accounts:
   def disconnect
     authorize @inbox, :update?
     
+    begin
+      Zaphub::SessionService.new(@inbox.channel).destroy_session
+    rescue StandardError => e
+      Rails.logger.warn "ZapHub API disconnect failed: #{e.message}"
+    end
+
     @inbox.channel.update!(status: 'disconnected')
     
     render json: {

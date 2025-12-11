@@ -1,5 +1,12 @@
 export const set = (state, data) => {
-  state.records = data;
+  // Deduplicate by id to avoid stale/duplicate entries from multiple fetches
+  const seen = new Set();
+  state.records = (data || []).filter(item => {
+    const key = item?.id;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 };
 
 export const create = (state, data) => {

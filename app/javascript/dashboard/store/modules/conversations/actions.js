@@ -186,6 +186,12 @@ const actions = {
   },
 
   async setActiveChat({ commit, dispatch }, { data, after }) {
+    // Debug: help identify which conversation is open when troubleshooting history issues
+    console.log('[Conversation] Active conversation opened', {
+      id: data?.id,
+      inbox_id: data?.inbox_id,
+      contact: data?.meta?.sender,
+    });
     commit(types.SET_CURRENT_CHAT_WINDOW, data);
     commit(types.CLEAR_ALL_MESSAGES_LOADED);
     if (data.dataFetched === undefined) {

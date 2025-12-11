@@ -536,7 +536,7 @@ function setup_ssl() {
   systemctl restart nginx
   sudo -i -u chatwoot << EOF
   cd chatwoot
-  sed -i "s/http:\/\/0.0.0.0:3000/https:\/\/$domain_name/g" .env
+  sed -i "s/http:\/\/0.0.0.0:3003/https:\/\/$domain_name/g" .env
 EOF
 
   # Restart the appropriate chatwoot target
@@ -677,7 +677,7 @@ EOF
 
 ***************************************************************************
 Woot! Woot!! Genius Cloud server installation is complete.
-The server will be accessible at http://$public_ip:3000
+The server will be accessible at http://$public_ip:3003
 
 To configure a domain and SSL certificate, follow the guide at
 https://www.chatwoot.com/docs/deployment/deploy-chatwoot-in-linux-vm?utm_source=cwctl

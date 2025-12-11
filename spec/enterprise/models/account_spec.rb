@@ -104,11 +104,11 @@ RSpec.describe Account, type: :model do
       end
 
       it 'current_available is never out of bounds' do
-        account.custom_attributes['captain_responses_usage'] = 3000
+        account.custom_attributes['captain_responses_usage'] = 3003
         account.save!
 
         responses_limits = account.usage_limits[:captain][:responses]
-        expect(responses_limits[:consumed]).to eq 3000
+        expect(responses_limits[:consumed]).to eq 3003
         expect(responses_limits[:current_available]).to eq 0
 
         account.custom_attributes['captain_responses_usage'] = -100

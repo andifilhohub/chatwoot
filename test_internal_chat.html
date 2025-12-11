@@ -12,7 +12,7 @@
     
     <script>
         // Conecta ao Action Cable
-        const cable = ActionCable.createConsumer('ws://localhost:3000/cable');
+        const cable = ActionCable.createConsumer('ws://localhost:3003/cable');
         
         // Subscribe ao canal
         const subscription = cable.subscriptions.create('InternalChatChannel', {

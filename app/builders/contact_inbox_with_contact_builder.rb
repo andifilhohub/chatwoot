@@ -14,8 +14,16 @@ class ContactInboxWithContactBuilder
   end
 
   def find_or_create_contact_and_contact_inbox
+    unless inbox.present?
+      Rails.logger.warn('[ContactInboxWithContactBuilder] Skipping contact creation because inbox is nil')
+      return
+    end
+
     @contact_inbox = inbox.contact_inboxes.find_by(source_id: source_id) if source_id.present?
-    return @contact_inbox if @contact_inbox
+    if @contact_inbox
+      update_contact_avatar(@contact_inbox.contact) if should_update_contact_avatar?(@contact_inbox.contact)
+      return @contact_inbox
+    end
 
     ActiveRecord::Base.transaction(requires_new: true) do
       build_contact_with_contact_inbox
@@ -46,6 +54,10 @@ class ContactInboxWithContactBuilder
 
   def update_contact_avatar(contact)
     ::Avatar::AvatarFromUrlJob.perform_later(contact, contact_attributes[:avatar_url]) if contact_attributes[:avatar_url]
+  end
+
+  def should_update_contact_avatar?(contact)
+    contact.present? && contact_attributes[:avatar_url].present? && !contact.avatar.attached?
   end
 
   def create_contact

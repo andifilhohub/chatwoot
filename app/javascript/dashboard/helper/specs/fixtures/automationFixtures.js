@@ -290,7 +290,7 @@ export const automation = {
       file_type: 'image/jpeg',
       account_id: 1,
       file_url:
-        'http://localhost:3000/rails/active_storage/blobs/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBRQT09IiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--965b4c27f4c5e47c526f0f38266b25417b72e5dd/pfp.jpeg',
+        'http://localhost:3003/rails/active_storage/blobs/redirect/eyJfcmFpbHMiOnsibWVzc2FnZSI6IkJBaHBRQT09IiwiZXhwIjpudWxsLCJwdXIiOiJibG9iX2lkIn19--965b4c27f4c5e47c526f0f38266b25417b72e5dd/pfp.jpeg',
       blob_id: 59,
       filename: 'pfp.jpeg',
     },
@@ -473,7 +473,7 @@ export const inboxes = [
     welcome_title: '',
     welcome_tagline: '',
     web_widget_script:
-      '\n    <script>\n      (function(d,t) {\n        var BASE_URL="http://localhost:3000";\n        var g=d.createElement(t),s=d.getElementsByTagName(t)[0];\n        g.src=BASE_URL+"/packs/js/sdk.js";\n        g.async = true;\n        s.parentNode.insertBefore(g,s);\n        g.onload=function(){\n          window.chatwootSDK.run({\n            websiteToken: \'yZ7USzaEs7hrwUAHLGwjbxJ1\',\n            baseUrl: BASE_URL\n          })\n        }\n      })(document,"script");\n    </script>\n    ',
+      '\n    <script>\n      (function(d,t) {\n        var BASE_URL="http://localhost:3003";\n        var g=d.createElement(t),s=d.getElementsByTagName(t)[0];\n        g.src=BASE_URL+"/packs/js/sdk.js";\n        g.async = true;\n        s.parentNode.insertBefore(g,s);\n        g.onload=function(){\n          window.chatwootSDK.run({\n            websiteToken: \'yZ7USzaEs7hrwUAHLGwjbxJ1\',\n            baseUrl: BASE_URL\n          })\n        }\n      })(document,"script");\n    </script>\n    ',
     website_token: 'yZ7USzaEs7hrwUAHLGwjbxJ1',
     selected_feature_flags: ['attachments', 'emoji_picker', 'end_conversation'],
     reply_time: 'in_a_few_minutes',

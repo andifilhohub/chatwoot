@@ -36,13 +36,13 @@ jobs:
         sudo ./install.sh --install < input
 
         #  disabling http verify for now as http
-        #  access to port 3000 fails in gh action env
+        #  access to port 3003 fails in gh action env
         #    - name: Verify
         #      if: always()
         #      run: |
-        #        sudo netstat -ntlp | grep 3000
+        #        sudo netstat -ntlp | grep 3003
         #        sudo systemctl restart chatwoot.target
-        #        curl http://localhost:3000/api
+        #        curl http://localhost:3003/api
 
     - name: Upload chatwoot setup log file as an artifact
       uses: actions/upload-artifact@v4

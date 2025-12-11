@@ -49,7 +49,7 @@ module Zaphub
     end
 
     def send_message(params)
-      return unless channel.session_id
+      raise 'ZapHub session missing — reconnect this channel' if channel.session_id.blank?
 
       response = make_request(
         :post,
@@ -61,7 +61,7 @@ module Zaphub
     end
 
     def send_event(event_name, data = {})
-      return unless channel.session_id
+      raise 'ZapHub session missing — reconnect this channel' if channel.session_id.blank?
 
       payload = {
         event: event_name,
@@ -78,7 +78,7 @@ module Zaphub
     end
 
     def edit_message(message_id, params)
-      return unless channel.session_id
+      raise 'ZapHub session missing — reconnect this channel' if channel.session_id.blank?
 
       response = make_request(
         :patch,
@@ -90,7 +90,7 @@ module Zaphub
     end
 
     def delete_message(message_id)
-      return unless channel.session_id
+      raise 'ZapHub session missing — reconnect this channel' if channel.session_id.blank?
 
       response = make_request(
         :delete,
@@ -98,6 +98,18 @@ module Zaphub
         nil
       )
       
+      response['data'] || response
+    end
+
+    def destroy_session
+      return unless channel.session_id
+
+      response = make_request(
+        :delete,
+        "/api/v1/sessions/#{channel.session_id}",
+        nil
+      )
+
       response['data'] || response
     end
 

@@ -195,7 +195,7 @@ export default function useInternalChatData() {
         console.log('✅ Reconnected during polling, stopping fallback');
         stopPollingFallback();
       }
-    }, 3000); // Poll every 3 seconds
+    }, 3003); // Poll every 3 seconds
   };
 
   // Stop polling fallback when WebSocket reconnects

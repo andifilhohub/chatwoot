@@ -42,7 +42,7 @@ RSpec.describe 'Microsoft Authorization API', type: :request do
           'https://outlook.office.com/SMTP.Send openid profile email'
         ]
         expect(params['scope']).to eq(expected_scope)
-        expect(params['redirect_uri']).to eq(["#{ENV.fetch('FRONTEND_URL', 'http://localhost:3000')}/microsoft/callback"])
+        expect(params['redirect_uri']).to eq(["#{ENV.fetch('FRONTEND_URL', 'http://localhost:3003')}/microsoft/callback"])
 
         # Validate state parameter exists and can be decoded back to the account
         expect(params['state']).to be_present

@@ -3,8 +3,14 @@
 # Everywhere else we use conversation builder in partials folder
 
 json.meta do
-  json.sender do
-    json.partial! 'api/v1/models/contact', formats: [:json], resource: conversation.contact
+  contact = conversation.contact || conversation.contact_inbox&.contact
+  if contact
+    json.sender do
+      json.partial! 'api/v1/models/contact', formats: [:json], resource: contact
+    end
+  else
+    # Frontend expects sender to be an object; avoid null to prevent meta.sender.id errors
+    json.sender({})
   end
   json.channel conversation.inbox.try(:channel_type)
   if conversation.assignee&.account
@@ -40,7 +46,7 @@ json.contact_last_seen_at conversation.contact_last_seen_at.to_i
 json.custom_attributes conversation.custom_attributes
 json.inbox_id conversation.inbox_id
 json.labels conversation.cached_label_list_array
-json.muted conversation.muted?
+json.muted(conversation.contact.present? ? conversation.muted? : false)
 json.snoozed_until conversation.snoozed_until
 json.status conversation.status
 json.created_at conversation.created_at.to_i

@@ -82,7 +82,7 @@ WhatsApp ←→ ZapHub API (Baileys) ←→ Chatwoot   - Envia mensagens do Chat
 
 - ✅ Redis rodando
 
-- ✅ ZapHub API rodando (ex: `http://localhost:3000`)### Componentes Frontend
+- ✅ ZapHub API rodando (ex: `http://localhost:3003`)### Componentes Frontend
 
 
 
@@ -100,7 +100,7 @@ WhatsApp ←→ ZapHub API (Baileys) ←→ Chatwoot   - Envia mensagens do Chat
 
 ZAPHUB_API_KEY=sua-chave-api-aqui   - Exibe QR code para conexão
 
-ZAPHUB_BASE_URL=http://localhost:3000   - Monitora status da conexão
+ZAPHUB_BASE_URL=http://localhost:3003   - Monitora status da conexão
 
 ```
 
@@ -126,9 +126,9 @@ Edite o arquivo `.env` do Chatwoot:1. Usuário clica em "ZapHub WhatsApp" na lis
 
 # ZapHub WhatsApp Integration   - API Key (chave de autenticação do ZapHub)
 
-ZAPHUB_API_KEY=sua-chave-secreta-aqui-xyz123   - Base URL (URL da API ZapHub, ex: http://localhost:3000/api/v1)
+ZAPHUB_API_KEY=sua-chave-secreta-aqui-xyz123   - Base URL (URL da API ZapHub, ex: http://localhost:3003/api/v1)
 
-ZAPHUB_BASE_URL=http://localhost:3000   - Webhook URL (opcional)
+ZAPHUB_BASE_URL=http://localhost:3003   - Webhook URL (opcional)
 
 ```3. Sistema cria inbox e canal ZapHub
 
@@ -320,7 +320,7 @@ Authorization: Bearer {ZAPHUB_API_KEY}
 
 **Resposta:**  api_key: 'test-api-key-12345',
 
-```json  base_url: 'http://localhost:3000/api/v1'
+```json  base_url: 'http://localhost:3003/api/v1'
 
 {)
 
@@ -366,7 +366,7 @@ Authorization: Bearer {ZAPHUB_API_KEY}### 3. Testar Webhook
 
 **Resposta (Conectado):**# Simular recebimento de mensagem
 
-```jsoncurl -X POST http://localhost:3000/webhooks/zaphub/1 \
+```jsoncurl -X POST http://localhost:3003/webhooks/zaphub/1 \
 
 {  -H "Content-Type: application/json" \
 
@@ -775,7 +775,7 @@ end
 startStatusCheck(inboxId) {
   this.statusCheckInterval = setInterval(async () => {
     await this.checkConnectionStatus(inboxId);
-  }, 3000);
+  }, 3003);
 }
 
 async checkConnectionStatus(inboxId) {
@@ -899,7 +899,7 @@ POST /webhooks/zaphub/:channel_id
 **Verificar:**
 ```bash
 # 1. Checar se ZapHub está rodando
-curl http://localhost:3000/api/v1/health
+curl http://localhost:3003/api/v1/health
 
 # 2. Verificar variáveis de ambiente
 cat .env | grep ZAPHUB
@@ -908,7 +908,7 @@ cat .env | grep ZAPHUB
 tail -f log/development.log
 
 # 4. Testar endpoint diretamente
-curl http://localhost:3000/api/v1/sessions \
+curl http://localhost:3003/api/v1/sessions \
   -H "Authorization: Bearer $ZAPHUB_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"label": "Teste"}'
@@ -934,7 +934,7 @@ overmind stop
 overmind start -f Procfile.dev
 
 # 4. Testar autenticação diretamente
-curl http://localhost:3000/api/v1/health \
+curl http://localhost:3003/api/v1/health \
   -H "Authorization: Bearer sua-chave-aqui"
 ```
 
@@ -955,7 +955,7 @@ curl http://localhost:3000/api/v1/health \
 ```bash
 # 1. Confirmar webhook_url está configurado no ZapHub
 SESSION_ID="cole-session-id-aqui"
-curl "http://localhost:3000/api/v1/sessions/$SESSION_ID/status" \
+curl "http://localhost:3003/api/v1/sessions/$SESSION_ID/status" \
   -H "Authorization: Bearer $ZAPHUB_API_KEY" | jq '.data.webhook_url'
 
 # 2. Testar endpoint do webhook manualmente
@@ -989,7 +989,7 @@ tail -f logs/app.log | grep webhook
 
 ```bash
 # Verificar última vez online
-curl "http://localhost:3000/api/v1/sessions/$SESSION_ID/status" | jq '.data.last_seen'
+curl "http://localhost:3003/api/v1/sessions/$SESSION_ID/status" | jq '.data.last_seen'
 ```
 
 ---
@@ -1074,7 +1074,7 @@ server {
     ssl_certificate_key /path/to/key.pem;
 
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:3003;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
     }
@@ -1093,7 +1093,7 @@ echo "ZAPHUB_API_KEY=$ZAPHUB_API_KEY" >> .env
 
 ```bash
 # Permitir apenas tráfego entre Chatwoot ↔ ZapHub
-sudo ufw allow from IP_DO_ZAPHUB to any port 3000
+sudo ufw allow from IP_DO_ZAPHUB to any port 3003
 sudo ufw allow from IP_DO_CHATWOOT to any port 443
 ```
 
@@ -1178,14 +1178,14 @@ tail -f logs/workers.log
 
 ```bash
 # Health Check ZapHub
-curl http://localhost:3000/api/v1/health
+curl http://localhost:3003/api/v1/health
 
 # Listar Sessões
-curl http://localhost:3000/api/v1/sessions \
+curl http://localhost:3003/api/v1/sessions \
   -H "Authorization: Bearer $ZAPHUB_API_KEY"
 
 # Status de Sessão Específica
-curl "http://localhost:3000/api/v1/sessions/$SESSION_ID/status" \
+curl "http://localhost:3003/api/v1/sessions/$SESSION_ID/status" \
   -H "Authorization: Bearer $ZAPHUB_API_KEY"
 ```
 

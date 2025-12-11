@@ -32,6 +32,7 @@ class Channel::Zaphub < ApplicationRecord
   EDITABLE_ATTRS = [:api_key, :base_url, :webhook_url, { additional_attributes: {} }].freeze
 
   validates :status, inclusion: { in: %w[pending qr_generated connected disconnected error] }
+  before_destroy :disconnect_session
 
   # API credentials from environment variables
   def api_key
@@ -136,5 +137,15 @@ class Channel::Zaphub < ApplicationRecord
   def retryable_qr_error?(message)
     downcased = message.to_s.downcase
     RETRYABLE_QR_ERRORS.any? { |error| downcased.include?(error) }
+  end
+
+  private
+
+  def disconnect_session
+    return unless session_id.present?
+
+    Zaphub::SessionService.new(self).destroy_session
+  rescue StandardError => e
+    Rails.logger.warn "ZapHub disconnect failed for channel #{id}: #{e.message}"
   end
 end

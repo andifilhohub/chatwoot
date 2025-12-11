@@ -359,8 +359,8 @@
         },
         "BASE_URL": {
           "LABEL": "Base URL",
-          "SUBTITLE": "ZapHub API base URL (e.g., http://localhost:3000/api/v1)",
-          "PLACEHOLDER": "http://localhost:3000/api/v1",
+          "SUBTITLE": "ZapHub API base URL (e.g., http://localhost:3003/api/v1)",
+          "PLACEHOLDER": "http://localhost:3003/api/v1",
           "ERROR": "This field is required"
         },
         "WEBHOOK_URL": {

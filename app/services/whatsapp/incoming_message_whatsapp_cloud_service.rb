@@ -5,7 +5,12 @@ class Whatsapp::IncomingMessageWhatsappCloudService < Whatsapp::IncomingMessageB
   private
 
   def processed_params
-    @processed_params ||= params[:entry].try(:first).try(:[], 'changes').try(:first).try(:[], 'value')
+    @processed_params ||= begin
+      # Accept both string and symbol keys to stay compatible with webhook payloads.
+      value = params[:entry]&.first&.dig(:changes)&.first&.dig(:value) ||
+              params[:entry]&.first&.dig('changes')&.first&.dig('value')
+      value&.deep_symbolize_keys
+    end
   end
 
   def download_attachment_file(attachment_payload)

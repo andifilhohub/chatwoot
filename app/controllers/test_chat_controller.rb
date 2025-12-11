@@ -2,8 +2,8 @@
 
 # Teste simples para verificar se o sistema básico funciona
 class TestChatController < ApplicationController
-  skip_before_action :authenticate_user!, if: :skip_authentication?
-  skip_before_action :verify_authenticity_token
+  skip_before_action :authenticate_user!, if: :skip_authentication?, raise: false
+  skip_before_action :verify_authenticity_token, raise: false
 
   def test_message
     Rails.logger.info "🧪 TEST: Enviando mensagem de teste"

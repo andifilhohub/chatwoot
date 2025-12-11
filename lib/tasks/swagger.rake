@@ -28,7 +28,7 @@ module SwaggerTaskActions
       absolute_swagger_json_path = swagger_dir.join(swagger_json_relative_path)
       puts 'Swagger build was successful.'
       puts "Generated #{absolute_swagger_json_path}"
-      puts 'Go to http://localhost:3000/swagger see the changes.'
+      puts 'Go to http://localhost:3003/swagger see the changes.'
 
       # Trigger dependent task
       Rake::Task['swagger:build_tag_groups'].invoke

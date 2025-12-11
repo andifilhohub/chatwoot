@@ -36,7 +36,7 @@ RSpec.describe 'Instagram Authorization API', type: :request do
           extend InstagramConcern
           extend Instagram::IntegrationHelper
         end
-        frontend_url = ENV.fetch('FRONTEND_URL', 'http://localhost:3000')
+        frontend_url = ENV.fetch('FRONTEND_URL', 'http://localhost:3003')
         response_url = instagram_service.instagram_client.auth_code.authorize_url(
           {
             redirect_uri: "#{frontend_url}/instagram/callback",

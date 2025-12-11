@@ -26,17 +26,17 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
   def find_channel
     channel_id = params[:channel_id]
     @channel = Channel::Zaphub.find_by(id: channel_id)
+    @inbox = @channel&.inbox
 
-    if @channel.nil?
-      inbox = Inbox.find_by(id: channel_id, channel_type: Channel::Zaphub.name)
+    if @channel.nil? || @inbox.nil?
+      inbox = Inbox.find_by(id: channel_id, channel_type: Channel::Zaphub.name) ||
+              Inbox.find_by(channel: @channel) ||
+              Inbox.find_by(channel_id: @channel&.id)
+
       if inbox
         @channel = inbox.channel
-
-        if @channel
-          Rails.logger.warn("[Zaphub] webhook referenced inbox #{channel_id}, falling back to linked channel #{@channel.id}")
-        else
-          Rails.logger.warn("[Zaphub] webhook referenced inbox #{channel_id} that has no channel attached")
-        end
+        @inbox = inbox
+        Rails.logger.warn("[Zaphub] webhook referenced inbox #{channel_id}, falling back to linked channel #{@channel&.id}")
       end
     end
 
@@ -46,7 +46,11 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
       return
     end
 
-    @inbox = @channel.inbox
+    unless @inbox
+      Rails.logger.warn("[Zaphub] webhook received for channel #{@channel.id} without inbox; rejecting webhook")
+      head :not_found
+      return
+    end
   end
 
   def verify_zaphub_webhook_signature
@@ -133,6 +137,8 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
       process_call_event
     when 'group', 'group.participants.add', 'group.participants.remove', 'group.participants.promote', 'group.participants.demote', 'group.update'
       process_group_event
+    when 'contact', 'contact.upsert', 'contacts.upsert'
+      process_contact_upsert_event
     else
       Rails.logger.info "Unhandled ZapHub event type: #{event_type}"
     end
@@ -162,21 +168,36 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     contact = contact_inbox.contact
     conversation = find_or_create_conversation(contact_inbox, contact, message_data, sent_by_us, chat_identifier)
 
-    message = create_message(conversation, contact, message_data, sent_by_us)
+    message = if sent_by_us
+                find_existing_outgoing_message(conversation, message_data) || create_message(conversation, contact, message_data, sent_by_us)
+              else
+                create_message(conversation, contact, message_data, sent_by_us)
+              end
     send_zaphub_received_event(message, message_data) unless sent_by_us
   end
 
   def find_or_create_contact_inbox(message_data, sent_by_us, chat_identifier, sender_identifier)
+    unless @inbox.present?
+      Rails.logger.warn("[Zaphub] Cannot create/find contact_inbox because inbox is nil (channel_id=#{@channel&.id})")
+      return nil
+    end
+
     phone_number = extract_phone_number(sender_identifier)
 
-    contact_name = message_data[:chatName] || message_data[:pushName] || message_data[:name] || phone_number || sender_identifier
-    avatar_url = if ActiveModel::Type::Boolean.new.cast(message_data[:isGroup])
+    is_group = group_chat?(message_data)
+    group_name = message_data[:groupName] || message_data[:groupSubject] || message_data[:subject]
+    contact_name = if is_group
+                     group_name || message_data[:chatName] || message_data[:pushName] || sender_identifier
+                   else
+                     message_data[:chatName] || message_data[:pushName] || message_data[:name] || phone_number || sender_identifier
+                   end
+    avatar_url = if is_group
                    message_data[:groupImageUrl] || message_data[:chatImageUrl]
                  else
                    message_data[:contactImageUrl] || message_data[:chatImageUrl]
                  end
 
-    ContactInboxWithContactBuilder.new(
+    contact_inbox = ContactInboxWithContactBuilder.new(
       inbox: @inbox,
       source_id: chat_identifier,
       hmac_verified: true,
@@ -191,6 +212,8 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
         }
       }
     ).perform
+    update_contact_avatar_zaphub(contact_inbox&.contact, avatar_url)
+    contact_inbox
   end
 
   def find_or_create_conversation(contact_inbox, contact, message_data, sent_by_us, chat_identifier)
@@ -212,6 +235,44 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
         chat_id: chat_identifier
       }
     )
+  end
+
+  def find_existing_outgoing_message(conversation, message_data)
+    message_identifier = message_data[:id] || message_data[:messageId] || message_data[:message_id] || message_data[:waMessageId]
+    text_payload = message_data[:text] || message_data.dig(:content, :text)
+
+    scope = conversation.messages.outgoing.order(created_at: :desc)
+                       .where('created_at >= ?', 10.minutes.ago)
+                       .where("source_id IS NULL OR source_id LIKE 'msg-%' OR external_source_ids ->> 'zaphub' IS NULL")
+
+    scope = scope.where(content: text_payload) if text_payload.present?
+
+    existing = scope.first
+    return unless existing
+
+    attrs = {
+      source_id: message_identifier.presence || existing.source_id,
+      external_source_ids: (existing.external_source_ids || {}).merge('zaphub' => message_identifier.presence || existing.source_id)
+    }
+
+    status = normalize_outgoing_status(message_data[:status])
+    attrs[:status] = status if status.present? && existing.status != status
+
+    existing.update!(attrs)
+    Rails.logger.info "[Zaphub] Matched outgoing message #{existing.id} to messageId #{message_identifier}"
+    existing
+  rescue StandardError => e
+    Rails.logger.warn "[Zaphub] Failed to match outgoing message for payload=#{message_data.inspect}: #{e.message}"
+    nil
+  end
+
+  def normalize_outgoing_status(raw_status)
+    return if raw_status.blank?
+
+    val = raw_status.to_s.downcase
+    return 'read' if val == 'read'
+    return 'delivered' if val == 'delivered'
+    return 'sent' if val == 'sent'
   end
 
   def create_message(conversation, contact, message_data, sent_by_us = false)
@@ -264,7 +325,8 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     event_data[:content] = { text: message.content } if message.content.present?
     event_data[:receivedAt] = message_data[:timestamp] if message_data[:timestamp].present?
 
-    Zaphub::EventService.new(message: message, event: 'message.received', data: event_data).perform
+    # ZapHub API only accepts message.edited, message.deleted, message.sent, message.delivered, message.read, message.failed
+    Zaphub::EventService.new(message: message, event: 'message.delivered', data: event_data).perform
   end
 
   def extract_message_content(message_data)
@@ -424,14 +486,13 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
   def apply_receipt_status(payload, fallback_event)
     # Extract messageId from various possible locations
     message_id = payload[:messageId] || payload[:message_id] || payload[:id] || payload.dig(:data, :messageId)
+    alt_message_id = payload[:waMessageId] || payload[:wa_message_id] || payload.dig(:data, :waMessageId)
     
     Rails.logger.info "[Zaphub] Processing receipt status: message_id=#{message_id}, payload=#{payload.inspect}, fallback_event=#{fallback_event}"
     
-    return if message_id.blank?
+    return if message_id.blank? && alt_message_id.blank?
 
-    # Try to find by source_id first, then by external_source_id_zaphub
-    message = Message.find_by(source_id: message_id)
-    message ||= Message.find_by(external_source_id_zaphub: message_id)
+    message = find_message_by_zaphub_ids(message_id, alt_message_id)
     
     unless message
       Rails.logger.warn "[Zaphub] Message not found for receipt: message_id=#{message_id}"
@@ -453,14 +514,16 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
                        else
                          raw_status
                        end
-    
-    Rails.logger.info "[Zaphub] Updating message #{message.id} status from #{message.status} to #{normalized_status} (raw: #{raw_status})"
+
+    Rails.logger.info "[Zaphub] Updating message #{message.id} status from #{message.status} to #{normalized_status} (raw: #{raw_status}) | source_id=#{message.source_id}"
 
     case normalized_status
     when 'read'
       Messages::StatusUpdateService.new(message, 'read').perform
+      enqueue_conversation_status_job(message, payload, :read)
     when 'delivered'
       Messages::StatusUpdateService.new(message, 'delivered').perform unless message.read?
+      enqueue_conversation_status_job(message, payload, :delivered)
     when 'sent'
       Messages::StatusUpdateService.new(message, 'sent').perform unless message.read? || message.delivered?
     else
@@ -492,9 +555,7 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
 
     Rails.logger.info "[Zaphub] Processing message edited event: message_id=#{message_id}"
 
-    # Try to find by source_id first, then by external_source_id_zaphub
-    message = Message.find_by(source_id: message_id)
-    message ||= Message.find_by(external_source_id_zaphub: message_id)
+    message = find_message_by_zaphub_ids(message_id)
     
     unless message
       Rails.logger.warn "[Zaphub] Message not found for edit: message_id=#{message_id}"
@@ -519,9 +580,7 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
 
     Rails.logger.info "[Zaphub] Processing message deleted event: message_id=#{message_id}"
 
-    # Try to find by source_id first, then by external_source_id_zaphub
-    message = Message.find_by(source_id: message_id)
-    message ||= Message.find_by(external_source_id_zaphub: message_id)
+    message = find_message_by_zaphub_ids(message_id)
     
     unless message
       Rails.logger.warn "[Zaphub] Message not found for delete: message_id=#{message_id}"
@@ -547,6 +606,80 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
 
   def process_group_event
     Rails.logger.info "ZapHub group event: #{zaphub_payload}"
+  end
+
+  def find_message_by_zaphub_ids(*ids)
+    candidate_ids = ids.compact_blank
+    return nil if candidate_ids.blank?
+
+    Message.where(source_id: candidate_ids)
+           .or(Message.where("external_source_ids ->> 'zaphub' IN (?)", candidate_ids))
+           .first
+  end
+
+  def enqueue_conversation_status_job(message, payload, status)
+    return unless message&.conversation_id.present?
+    return unless %i[read delivered].include?(status)
+
+    timestamp = receipt_timestamp(payload) || message.created_at
+    ::Conversations::UpdateMessageStatusJob.perform_later(message.conversation_id, timestamp, status)
+  end
+
+  def receipt_timestamp(payload)
+    ts = payload[:readAt] || payload[:deliveredAt] || payload[:timestamp]
+    ts = ts.to_i if ts.respond_to?(:to_i) && ts.to_s.match?(/\A\d+\z/)
+    Time.parse(ts.to_s) if ts.present?
+  rescue StandardError => e
+    Rails.logger.warn "[Zaphub] Failed to parse receipt timestamp #{ts.inspect}: #{e.message}"
+    nil
+  end
+
+  def process_contact_upsert_event
+    payload = raw_zaphub_payload
+    contacts = Array.wrap(payload[:contacts] || payload.dig(:data, :contacts))
+
+    if contacts.blank?
+      Rails.logger.info '[Zaphub] contact.upsert received with no contacts'
+      return
+    end
+
+    unless @inbox.present?
+      Rails.logger.warn("[Zaphub] contact.upsert ignored because inbox is nil (channel_id=#{@channel&.id})")
+      return
+    end
+
+    contacts.each do |contact_payload|
+      jid = contact_payload[:jid] || contact_payload[:lid] || contact_payload[:id]
+      next if jid.blank?
+
+      phone_number = extract_phone_number(jid)
+      contact_name = contact_payload[:name] || contact_payload[:pushName] || phone_number || jid
+      avatar_url = contact_payload[:imgUrl] || contact_payload[:imageUrl]
+
+      contact_inbox = ContactInboxWithContactBuilder.new(
+        inbox: @inbox,
+        source_id: jid,
+        hmac_verified: true,
+        contact_attributes: {
+          name: contact_name,
+          phone_number: phone_number,
+          identifier: jid,
+          avatar_url: avatar_url,
+          additional_attributes: {
+            source: 'zaphub',
+            raw: contact_payload
+          }
+        }
+      ).perform
+      update_contact_avatar_zaphub(contact_inbox&.contact, avatar_url)
+    end
+  end
+
+  def update_contact_avatar_zaphub(contact, avatar_url)
+    return unless contact.present?
+    return if avatar_url.blank?
+
+    ::Avatar::AvatarFromUrlJob.perform_later(contact, avatar_url)
   end
 
   def zaphub_event_type

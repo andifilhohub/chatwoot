@@ -83,7 +83,7 @@ RSpec.describe 'Enterprise SLA API', type: :request do
                       description: 'SLA for premium customers',
                       first_response_time_threshold: 1000,
                       next_response_time_threshold: 2000,
-                      resolution_time_threshold: 3000,
+                      resolution_time_threshold: 3003,
                       only_during_business_hours: false } }
     end
 

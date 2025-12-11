@@ -74,7 +74,7 @@ const DOES_NOT_HAVE_SIGNATURE = {
   'signature has images': {
     body: 'This is a test',
     signature:
-      'Testing\n![](http://localhost:3000/rails/active_storage/blobs/redirect/some-hash/image.png)',
+      'Testing\n![](http://localhost:3003/rails/active_storage/blobs/redirect/some-hash/image.png)',
   },
   'signature has non commonmark syntax': {
     body: 'This is a test',

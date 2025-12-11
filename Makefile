@@ -27,7 +27,7 @@ console:
 	RAILS_ENV=$(RAILS_ENV) bundle exec rails console
 
 server:
-	RAILS_ENV=$(RAILS_ENV) bundle exec rails server -b 0.0.0.0 -p 3000
+	RAILS_ENV=$(RAILS_ENV) bundle exec rails server -b 0.0.0.0 -p 3003
 
 burn:
 	bundle && pnpm install
@@ -45,7 +45,7 @@ force_run:
 	overmind start -f Procfile.dev
 
 force_run_tunnel:
-	lsof -ti:3000 | xargs kill -9 2>/dev/null || true
+	lsof -ti:3003 | xargs kill -9 2>/dev/null || true
 	rm -f ./.overmind.sock
 	rm -f tmp/pids/*.pid
 	overmind start -f Procfile.tunnel

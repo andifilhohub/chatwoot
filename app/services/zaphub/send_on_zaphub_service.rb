@@ -12,21 +12,25 @@ module Zaphub
 
     def send_zaphub_message
       message_payload = build_message_payload
+      Rails.logger.info "[Zaphub] Sending message #{message.id} payload=#{message_payload.inspect}"
       
       response = Zaphub::SessionService.new(channel).send_message(message_payload)
       
-      # Update message with external ID
-      if response['messageId']
+      # Update message with external ID (supporting multiple key variants)
+      response_id = response['messageId'] || response['waMessageId'] || response['id']
+      Rails.logger.info "[Zaphub] Send response for message #{message.id}: #{response.inspect}"
+      if response_id
         message.update!(
-          source_id: response['messageId'],
-          external_source_id_zaphub: response['messageId']
+          source_id: response_id,
+          external_source_id_zaphub: response_id
         )
-        Rails.logger.info "[Zaphub] Updated message #{message.id} with source_id: #{response['messageId']}"
+        Rails.logger.info "[Zaphub] Updated message #{message.id} with source_id: #{response_id}"
       end
       
       response
     rescue StandardError => e
       Rails.logger.error "ZapHub send message error: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
       raise
     end
 

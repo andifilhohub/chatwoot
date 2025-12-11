@@ -65,7 +65,12 @@ class Api::V1::Accounts::InboxesController < Api::V1::Accounts::BaseController
   end
 
   def destroy
-    ::DeleteObjectJob.perform_later(@inbox, Current.user, request.ip) if @inbox.present?
+    if @inbox.present? && @inbox.channel_type == 'Channel::Zaphub'
+      # Destroy inline for ZapHub to ensure session teardown and avoid delayed cleanup issues
+      @inbox.destroy!
+    else
+      ::DeleteObjectJob.perform_later(@inbox, Current.user, request.ip) if @inbox.present?
+    end
     render status: :ok, json: { message: I18n.t('messages.inbox_deletetion_response') }
   end
 

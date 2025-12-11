@@ -4,7 +4,7 @@ RSpec.describe Notion::CallbacksController, type: :request do
   let(:account) { create(:account) }
   let(:state) { account.to_sgid.to_s }
   let(:oauth_code) { 'test_oauth_code' }
-  let(:notion_redirect_uri) { "#{ENV.fetch('FRONTEND_URL', 'http://localhost:3000')}/app/accounts/#{account.id}/settings/integrations/notion" }
+  let(:notion_redirect_uri) { "#{ENV.fetch('FRONTEND_URL', 'http://localhost:3003')}/app/accounts/#{account.id}/settings/integrations/notion" }
 
   let(:notion_response_body) do
     {
@@ -28,7 +28,7 @@ RSpec.describe Notion::CallbacksController, type: :request do
     before do
       account.enable_features('notion_integration')
       stub_const('ENV', ENV.to_hash.merge(
-                          'FRONTEND_URL' => 'http://localhost:3000',
+                          'FRONTEND_URL' => 'http://localhost:3003',
                           'NOTION_CLIENT_ID' => 'test_client_id',
                           'NOTION_CLIENT_SECRET' => 'test_client_secret'
                         ))

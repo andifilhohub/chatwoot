@@ -344,7 +344,7 @@ describe('#getters', () => {
         id: 3,
         status: 'resolved',
         meta: { assignee: { id: 2 } },
-        last_activity_at: 3000,
+        last_activity_at: 3003,
       },
     ];
 

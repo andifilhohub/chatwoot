@@ -497,7 +497,7 @@ const ensureSubscription = (force = false) => {
 
 **URL do WebSocket:**
 ```
-ws://localhost:3000/cable
+ws://localhost:3003/cable
 ```
 
 **Autenticação:**

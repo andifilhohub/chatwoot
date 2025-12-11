@@ -175,7 +175,7 @@ const startStatusCheck = inboxId => {
   stopStatusCheck();
   statusCheckIntervalId = setInterval(() => {
     checkConnectionStatus(inboxId);
-  }, 3000);
+  }, 3003);
 };
 
 const createSessionAndShowQR = async () => {

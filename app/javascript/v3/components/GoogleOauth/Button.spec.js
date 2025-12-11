@@ -12,7 +12,7 @@ describe('GoogleOAuthButton.vue', () => {
   beforeEach(() => {
     window.chatwootConfig = {
       googleOAuthClientId: 'clientId',
-      googleOAuthCallbackUrl: 'http://localhost:3000/test-callback',
+      googleOAuthCallbackUrl: 'http://localhost:3003/test-callback',
     };
   });
 
@@ -38,7 +38,7 @@ describe('GoogleOAuthButton.vue', () => {
     expect(googleAuthUrl.pathname).toBe('/o/oauth2/auth/oauthchooseaccount');
     expect(params.get('client_id')).toBe('clientId');
     expect(params.get('redirect_uri')).toBe(
-      'http://localhost:3000/test-callback'
+      'http://localhost:3003/test-callback'
     );
     expect(params.get('response_type')).toBe('code');
     expect(params.get('scope')).toBe('email profile');

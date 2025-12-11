@@ -1,3 +1,5 @@
+require 'uri'
+
 module Redis::Config
   DEFAULT_SENTINEL_PORT ||= '26379'.freeze
   class << self
@@ -10,8 +12,12 @@ module Redis::Config
     end
 
     def base_config
+      redis_db = ENV.fetch('REDIS_DB', '2')
+      url = ensure_db_suffix(ENV.fetch('REDIS_URL', 'redis://127.0.0.1:6379'), redis_db)
+
       {
-        url: ENV.fetch('REDIS_URL', 'redis://127.0.0.1:6379'),
+        # Default to DB 2 to keep this instance isolated from other Chatwoot installs on the same host.
+        url: url,
         password: ENV.fetch('REDIS_PASSWORD', nil).presence,
         ssl_params: { verify_mode: Chatwoot.redis_ssl_verify_mode },
         reconnect_attempts: 2,
@@ -44,6 +50,21 @@ module Redis::Config
       master = "redis://#{ENV.fetch('REDIS_SENTINEL_MASTER_NAME', 'mymaster')}"
 
       base_config.merge({ url: master, sentinels: sentinels })
+    end
+
+    # Ensure the Redis URL has a DB suffix; if already present, leave as-is.
+    def ensure_db_suffix(url, redis_db)
+      uri = URI.parse(url)
+      return url unless uri.scheme&.start_with?('redis')
+
+      if uri.path.nil? || uri.path == '' || uri.path == '/'
+        uri.path = "/#{redis_db}"
+        return uri.to_s
+      end
+
+      url
+    rescue URI::InvalidURIError
+      url
     end
   end
 end

@@ -214,7 +214,7 @@ Status: 200 OK
 ### Conexão
 ```javascript
 // Conectar ao canal
-const cable = ActionCable.createConsumer(`ws://localhost:3000/cable?user_id=${userId}&account_id=${accountId}&pubsub_token=${token}`);
+const cable = ActionCable.createConsumer(`ws://localhost:3003/cable?user_id=${userId}&account_id=${accountId}&pubsub_token=${token}`);
 
 const subscription = cable.subscriptions.create({
   channel: "InternalChatChannel",
