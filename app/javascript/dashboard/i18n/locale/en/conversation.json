@@ -124,6 +124,12 @@
         "NEXT_WEEK": "Next week"
       }
     },
+    "RESOLVE_MODAL": {
+      "TITLE": "Resolve Conversation",
+      "DESCRIPTION": "You can execute a macro before resolving this conversation, or resolve it directly.",
+      "RESOLVE_WITHOUT_MACRO": "Resolve",
+      "CANCEL": "Cancel"
+    },
     "MENTION": {
       "AGENTS": "Agents",
       "TEAMS": "Teams"

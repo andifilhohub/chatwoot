@@ -31,7 +31,9 @@
         "LAST_UPDATED_BY": "Last updated by",
         "VISIBILITY": "Visibility"
       },
-      "404": "No macros found"
+      "404": "No macros found",
+      "ACTION": "action",
+      "ACTIONS": "actions"
     },
     "DELETE": {
       "TOOLTIP": "Delete macro",

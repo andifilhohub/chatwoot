@@ -16,6 +16,7 @@ import {
 } from 'dashboard/helper/commandbar/events';
 
 import Button from 'dashboard/components-next/button/Button.vue';
+import ResolveMacroModal from './ResolveMacroModal.vue';
 
 const store = useStore();
 const getters = useStoreGetters();
@@ -23,6 +24,7 @@ const { t } = useI18n();
 
 const arrowDownButtonRef = ref(null);
 const isLoading = ref(false);
+const showResolveMacroModal = ref(false);
 
 const [showActionsDropdown, toggleDropdown] = useToggle();
 const closeDropdown = () => toggleDropdown(false);
@@ -95,8 +97,16 @@ const onCmdOpenConversation = () => {
   toggleStatus(wootConstants.STATUS_TYPE.OPEN);
 };
 
-const onCmdResolveConversation = () => {
+const openResolveMacroModal = () => {
+  showResolveMacroModal.value = true;
+};
+
+const handleResolveFromModal = () => {
   toggleStatus(wootConstants.STATUS_TYPE.RESOLVED);
+};
+
+const onCmdResolveConversation = () => {
+  openResolveMacroModal();
 };
 
 const keyboardEvents = {
@@ -207,5 +217,12 @@ useEmitter(CMD_RESOLVE_CONVERSATION, onCmdResolveConversation);
         </WootDropdownItem>
       </WootDropdownMenu>
     </div>
+
+    <!-- Resolve Macro Modal -->
+    <ResolveMacroModal
+      v-model:show="showResolveMacroModal"
+      :conversation-id="currentChat.id"
+      @resolve="handleResolveFromModal"
+    />
   </div>
 </template>
