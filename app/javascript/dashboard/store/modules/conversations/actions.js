@@ -338,7 +338,11 @@ const actions = {
     { conversationId, messageId, content }
   ) {
     try {
-      const { data } = await MessageApi.edit(conversationId, messageId, content);
+      const { data } = await MessageApi.edit(
+        conversationId,
+        messageId,
+        content
+      );
       commit(types.ADD_MESSAGE, data);
     } catch (error) {
       throw new Error(error);

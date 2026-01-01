@@ -167,7 +167,10 @@ const toggleAutoResolve = async () => {
           "
         />
       </WithLabel>
-      <WithLabel name="auto-resolve-preferences" :label="t('GENERAL_SETTINGS.FORM.AUTO_RESOLVE.PREFERENCES')">
+      <WithLabel
+        name="auto-resolve-preferences"
+        :label="t('GENERAL_SETTINGS.FORM.AUTO_RESOLVE.PREFERENCES')"
+      >
         <div
           class="rounded-xl border border-n-weak bg-n-solid-1 w-full text-sm text-n-slate-12 divide-y divide-n-weak"
         >

@@ -39,11 +39,10 @@ class InternalChatAPI extends ApiClient {
       },
     };
 
-    return axios.post(`${this.url}/send_message`, payload)
-      .catch(error => {
-        console.error('❌ Internal chat API error:', error);
-        throw error;
-      });
+    return axios.post(`${this.url}/send_message`, payload).catch(error => {
+      console.error('❌ Internal chat API error:', error);
+      throw error;
+    });
   }
 }
 

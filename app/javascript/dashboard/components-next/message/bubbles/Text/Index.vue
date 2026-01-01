@@ -1,7 +1,8 @@
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import BaseBubble from 'next/message/bubbles/Base.vue';
 import FormattedContent from './FormattedContent.vue';
+import ContactCard from './ContactCard.vue';
 import AttachmentChips from 'next/message/chips/AttachmentChips.vue';
 import TranslationToggle from 'dashboard/components-next/message/TranslationToggle.vue';
 import { MESSAGE_TYPES } from '../../constants';
@@ -32,9 +33,28 @@ const isTemplate = computed(() => {
   return messageType.value === MESSAGE_TYPES.TEMPLATE;
 });
 
+const isContactMessage = computed(() => {
+  // Check by content_attributes flag first
+  if (
+    contentAttributes.value?.whatsapp_message_type === 'contactMessage' ||
+    contentAttributes.value?.whatsappMessageType === 'contactMessage'
+  ) {
+    return true;
+  }
+
+  // Fallback: detect by content pattern (contains "**Contato:**" and "*Nome:*")
+  const text = content.value || '';
+  const hasContactHeader = /\*\*Contato:\*\*/i.test(text);
+  const hasNameField = /\*Nome:\*/i.test(text);
+
+  return hasContactHeader && hasNameField;
+});
+
 const isEmpty = computed(() => {
   return !content.value && !attachments.value?.length;
 });
+
+// Contact message detection is active via isContactMessage computed
 
 const handleSeeOriginal = () => {
   renderOriginal.value = !renderOriginal.value;
@@ -47,7 +67,8 @@ const handleSeeOriginal = () => {
       <span v-if="isEmpty" class="text-n-slate-11">
         {{ $t('CONVERSATION.NO_CONTENT') }}
       </span>
-      <FormattedContent v-if="renderContent" :content="renderContent" />
+      <ContactCard v-else-if="isContactMessage" :content="renderContent" />
+      <FormattedContent v-else-if="renderContent" :content="renderContent" />
       <TranslationToggle
         v-if="hasTranslations"
         class="-mt-3"

@@ -310,7 +310,10 @@ const componentToRender = computed(() => {
     const isSticker = props.contentType === CONTENT_TYPES.STICKER;
 
     // Treat placeholder content like [Image], [Video], etc. as no content (but not stickers)
-    const isPlaceholderContent = !isSticker && props.content && /^\[(Image|Video|Audio|Document|File)\]$/i.test(props.content.trim());
+    const isPlaceholderContent =
+      !isSticker &&
+      props.content &&
+      /^\[(Image|Video|Audio|Document|File)\]$/i.test(props.content.trim());
 
     if (!props.content || isPlaceholderContent) {
       if (fileType === ATTACHMENT_TYPES.IMAGE) return ImageBubble;
@@ -349,7 +352,9 @@ const payloadForContextMenu = computed(() => {
 });
 
 const { inbox } = useInbox(props.inboxId);
-const isZaphubChannel = computed(() => inbox.value?.channelType === 'Channel::Zaphub');
+const isZaphubChannel = computed(
+  () => inbox.value?.channelType === 'Channel::Zaphub'
+);
 
 const contextMenuEnabledOptions = computed(() => {
   const hasText = !!props.content;

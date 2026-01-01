@@ -305,7 +305,9 @@ export default {
               class="flex items-center justify-between gap-2"
             >
               <div class="flex flex-col">
-                <span class="text-sm font-medium">{{ attachment.filename }}</span>
+                <span class="text-sm font-medium">{{
+                  attachment.filename
+                }}</span>
                 <span class="text-xs text-n-weak">
                   {{ formatSize(attachment.byte_size) }}
                 </span>

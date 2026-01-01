@@ -20,4 +20,3 @@ export default {
   getters,
   mutations,
 };
-

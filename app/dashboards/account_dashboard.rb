@@ -28,6 +28,8 @@ class AccountDashboard < Administrate::BaseDashboard
     id: Field::Number.with_options(searchable: true),
     name: Field::String.with_options(searchable: true),
     cnpj: Field::String,
+    inova_farma_enabled: Field::Boolean,
+    show_out_of_stock_products: Field::Boolean,
     created_at: Field::DateTime,
     updated_at: Field::DateTime,
     users: CountField,
@@ -50,6 +52,7 @@ class AccountDashboard < Administrate::BaseDashboard
     users
     conversations
     status
+    inova_farma_enabled
   ].freeze
 
   # SHOW_PAGE_ATTRIBUTES
@@ -66,6 +69,8 @@ class AccountDashboard < Administrate::BaseDashboard
     id
     name
     cnpj
+    inova_farma_enabled
+    show_out_of_stock_products
     created_at
     updated_at
     locale
@@ -88,6 +93,8 @@ class AccountDashboard < Administrate::BaseDashboard
   FORM_ATTRIBUTES = (%i[
     name
     cnpj
+    inova_farma_enabled
+    show_out_of_stock_products
     locale
     status
   ] + enterprise_form_attributes).freeze
@@ -122,6 +129,8 @@ class AccountDashboard < Administrate::BaseDashboard
   def permitted_attributes(action)
     attrs = super + [limits: {}]
     attrs << :cnpj
+    attrs << :inova_farma_enabled
+    attrs << :show_out_of_stock_products
 
     # Add manually_managed_features to permitted attributes only for Genius Cloud
     attrs << { manually_managed_features: [] } if ChatwootApp.chatwoot_cloud?

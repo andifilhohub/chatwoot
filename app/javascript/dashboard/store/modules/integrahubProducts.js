@@ -10,9 +10,9 @@ export const state = {
 };
 
 export const getters = {
-  allProducts: ($state) => $state.items,
-  productsPagination: ($state) => $state.pagination,
-  productsUIFlags: ($state) => $state.uiFlags,
+  allProducts: $state => $state.items,
+  productsPagination: $state => $state.pagination,
+  productsUIFlags: $state => $state.uiFlags,
 };
 
 export const actions = {
@@ -25,19 +25,30 @@ export const actions = {
       const payload = res.data || {};
       const rawItems = payload.items || payload.data || [];
       // normalize items to the shape used by the PDV component
-      const normalized = (rawItems || []).map((it) => ({
+      const normalized = (rawItems || []).map(it => ({
         id: it.productId || it.id || it.product_id,
         name: it.title || it.name || (it.rawJson && it.rawJson.title) || '',
         sku: (it.rawJson && it.rawJson.sku) || it.sku || it.productId || it.id,
         price: Number(it.price || (it.rawJson && it.rawJson.price) || 0),
         stock: Number(it.stock || (it.rawJson && it.rawJson.stock) || 0),
         brand: it.brand || (it.rawJson && it.rawJson.brand) || null,
-        category: it.category || it.brand || (it.rawJson && it.rawJson.category) || null,
+        category:
+          it.category ||
+          it.brand ||
+          (it.rawJson && it.rawJson.category) ||
+          null,
         raw: it.rawJson || it,
       }));
 
       commit('SET_ITEMS', normalized);
-      commit('SET_PAGINATION', (payload.pagination || { page, limit, count: (payload.count || normalized.length) }));
+      commit(
+        'SET_PAGINATION',
+        payload.pagination || {
+          page,
+          limit,
+          count: payload.count || normalized.length,
+        }
+      );
     } catch (e) {
       commit('SET_ITEMS', []);
       commit('SET_PAGINATION', { page: 1, limit: 40, count: 0 });

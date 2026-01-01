@@ -50,6 +50,15 @@ export const getters = {
     const { features = {} } = findRecordById($state, id);
     return features[featureName] || false;
   },
+  isInovaFarmaEnabled: $state => id => {
+    const account = findRecordById($state, id);
+    return account?.custom_attributes?.inova_farma_enabled || false;
+  },
+  showOutOfStockProducts: $state => id => {
+    const account = findRecordById($state, id);
+    // Default to true if not set (backward compatibility)
+    return account?.custom_attributes?.show_out_of_stock_products !== false;
+  },
 };
 
 export const actions = {

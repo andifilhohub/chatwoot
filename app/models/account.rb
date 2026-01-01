@@ -165,6 +165,27 @@ class Account < ApplicationRecord
     ISO_639.find(account_locale)&.english_name&.downcase || 'english'
   end
 
+  # Inova Farma integration toggle
+  def inova_farma_enabled
+    custom_attributes['inova_farma_enabled'] == true
+  end
+
+  def inova_farma_enabled=(value)
+    self.custom_attributes ||= {}
+    self.custom_attributes['inova_farma_enabled'] = ActiveModel::Type::Boolean.new.cast(value)
+  end
+
+  # PDV - Show out of stock products toggle
+  def show_out_of_stock_products
+    # Default to true if not set (backward compatibility)
+    custom_attributes['show_out_of_stock_products'] != false
+  end
+
+  def show_out_of_stock_products=(value)
+    self.custom_attributes ||= {}
+    self.custom_attributes['show_out_of_stock_products'] = ActiveModel::Type::Boolean.new.cast(value)
+  end
+
   private
 
   def notify_creation

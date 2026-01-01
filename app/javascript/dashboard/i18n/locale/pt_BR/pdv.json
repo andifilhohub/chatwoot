@@ -2,8 +2,9 @@
   "PDV": {
     "TITLE": "Ponto de Venda",
     "PRODUCTS": "Produtos",
-    "CHECKOUT": "Finalizar",
+    "CHECKOUT": "Vender",
     "SEARCH_PRODUCTS": "Buscar produtos...",
+    "SEARCH_PRODUCTS_WITH_EAN": "Buscar por nome ou código de barras (EAN)...",
     "ALL_CATEGORIES": "Todos",
     "NO_PRODUCTS_FOUND": "Nenhum produto encontrado",
     "ADD_TO_CART": "Adicionar ao Carrinho",
@@ -16,6 +17,7 @@
     "NOTES_PLACEHOLDER": "Adicione observações sobre esta venda...",
     "SUBTOTAL": "Subtotal",
     "TOTAL": "Total",
+    "SEND_QUOTE": "Enviar Orçamento",
     "FINALIZE_SALE": "Finalizar Venda",
     "CLEAR_CART": "Limpar Carrinho"
   }

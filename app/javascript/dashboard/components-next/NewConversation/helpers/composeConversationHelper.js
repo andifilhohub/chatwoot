@@ -110,8 +110,7 @@ export const prepareAttachmentPayload = (
 ) => {
   const files = [];
   attachedFiles.forEach(attachment => {
-    const fileReference =
-      attachment.blobSignedId || attachment?.resource?.file;
+    const fileReference = attachment.blobSignedId || attachment?.resource?.file;
 
     if (fileReference) {
       files.push(fileReference);

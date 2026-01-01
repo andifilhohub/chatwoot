@@ -28,6 +28,7 @@ const currentChat = useMapGetter('getSelectedChat');
 const conversationById = useMapGetter('getConversationById');
 const uiFlags = useMapGetter('notifications/getUIFlags');
 const meta = useMapGetter('notifications/getMeta');
+const currentAccountId = useMapGetter('getCurrentAccountId');
 
 const inboxId = computed(() => Number(route.params.inboxId));
 const conversationId = computed(() => Number(route.params.id));
@@ -78,10 +79,26 @@ const isContactPanelOpen = computed(() => {
 const isPdvPanelOpen = computed(() => {
   if (currentChat.value.id) {
     const { is_pdv_panel_open: isPdvPanelOpenValue } = uiSettings.value;
-    console.log('🛒 InboxView: isPdvPanelOpen computed - currentChat.id:', currentChat.value.id);
-    console.log('🛒 InboxView: isPdvPanelOpen computed - isPdvPanelOpenValue:', isPdvPanelOpenValue);
-    console.log('🛒 InboxView: isPdvPanelOpen computed - uiSettings:', uiSettings.value);
-    return isPdvPanelOpenValue;
+    const accountId = currentAccountId.value;
+    const inovaFarmaEnabled = store.getters['accounts/isInovaFarmaEnabled'](accountId);
+    
+    console.log(
+      '🛒 InboxView: isPdvPanelOpen computed - currentChat.id:',
+      currentChat.value.id
+    );
+    console.log(
+      '🛒 InboxView: isPdvPanelOpen computed - isPdvPanelOpenValue:',
+      isPdvPanelOpenValue
+    );
+    console.log(
+      '🛒 InboxView: isPdvPanelOpen computed - inovaFarmaEnabled:',
+      inovaFarmaEnabled
+    );
+    console.log(
+      '🛒 InboxView: isPdvPanelOpen computed - uiSettings:',
+      uiSettings.value
+    );
+    return isPdvPanelOpenValue && inovaFarmaEnabled;
   }
   console.log('🛒 InboxView: isPdvPanelOpen computed - NO currentChat.id');
   return false;
@@ -234,16 +251,23 @@ onMounted(async () => {
         <!-- DEBUG: PDV Panel Test -->
         <div
           v-if="isPdvPanelOpen"
-          style="position: fixed; top: 0; right: 0; width: 300px; height: 200px; background: red; color: white; z-index: 9999; padding: 20px;"
+          style="
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 300px;
+            height: 200px;
+            background: red;
+            color: white;
+            z-index: 9999;
+            padding: 20px;
+          "
         >
           <h3>PDV DEBUG PANEL</h3>
           <p>isPdvPanelOpen: {{ isPdvPanelOpen }}</p>
           <p>currentChat.id: {{ currentChat.id }}</p>
         </div>
-        <PdvSidebar
-          v-if="isPdvPanelOpen"
-          :current-chat="currentChat"
-        />
+        <PdvSidebar v-if="isPdvPanelOpen" :current-chat="currentChat" />
       </div>
     </div>
   </div>

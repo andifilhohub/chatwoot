@@ -37,7 +37,9 @@ export default function useInternalChatData() {
       rooms.value = {
         general: payload.general || rooms.value.general || null,
         teams: Array.isArray(payload.teams) ? payload.teams : [],
-        direct_messages: Array.isArray(payload.direct_messages) ? payload.direct_messages : [],
+        direct_messages: Array.isArray(payload.direct_messages)
+          ? payload.direct_messages
+          : [],
       };
     } catch (error) {
       console.error('❌ Failed to load internal chat rooms:', error);
@@ -190,47 +192,49 @@ export default function useInternalChatData() {
     params.user_id = user.id;
     params.pubsub_token = user.pubsub_token;
 
-    subscription = cable.subscriptions.create(
-      params,
-      {
-        connected() {
-          console.debug('✅ Internal chat cable connected');
-          isConnected.value = true;
-        },
-
-        disconnected() {
-          console.debug('❌ Internal chat cable disconnected');
-          isConnected.value = false;
-          subscription = null;
-          subscriptionKey = null;
-          scheduleReconnect();
-        },
-
-        received(data) {
-          console.debug('📩 Internal chat payload:', data);
-          if (data.type === 'new_message' && data.message) {
-            if (!currentRoom.value) {
-              return;
-            }
-
-            const incomingRoomId = data.message.room_id;
-            const currentRoomId = currentRoom.value.room_id;
-            const matchesRoomId = currentRoomId && incomingRoomId
-              && String(currentRoomId) === String(incomingRoomId);
-
-            const matchesIdentifier = currentRoom.value.identifier && data.chat_id
-              && String(currentRoom.value.identifier) === String(data.chat_id);
-
-            const matchesGeneral = currentRoom.value.room_type === 'general'
-              && data.chat_type === 'general';
-
-            if (matchesRoomId || matchesIdentifier || matchesGeneral) {
-              upsertMessage(data.message);
-            }
-          }
-        },
+    subscription = cable.subscriptions.create(params, {
+      connected() {
+        console.debug('✅ Internal chat cable connected');
+        isConnected.value = true;
       },
-    );
+
+      disconnected() {
+        console.debug('❌ Internal chat cable disconnected');
+        isConnected.value = false;
+        subscription = null;
+        subscriptionKey = null;
+        scheduleReconnect();
+      },
+
+      received(data) {
+        console.debug('📩 Internal chat payload:', data);
+        if (data.type === 'new_message' && data.message) {
+          if (!currentRoom.value) {
+            return;
+          }
+
+          const incomingRoomId = data.message.room_id;
+          const currentRoomId = currentRoom.value.room_id;
+          const matchesRoomId =
+            currentRoomId &&
+            incomingRoomId &&
+            String(currentRoomId) === String(incomingRoomId);
+
+          const matchesIdentifier =
+            currentRoom.value.identifier &&
+            data.chat_id &&
+            String(currentRoom.value.identifier) === String(data.chat_id);
+
+          const matchesGeneral =
+            currentRoom.value.room_type === 'general' &&
+            data.chat_type === 'general';
+
+          if (matchesRoomId || matchesIdentifier || matchesGeneral) {
+            upsertMessage(data.message);
+          }
+        }
+      },
+    });
 
     subscriptionKey = key;
   };
@@ -244,9 +248,8 @@ export default function useInternalChatData() {
     }
 
     const normalizedRoom = normalizeRoom(currentRoom.value);
-    const targetRoomId = normalizedRoom.room_id
-      || normalizedRoom.id
-      || normalizedRoom.identifier;
+    const targetRoomId =
+      normalizedRoom.room_id || normalizedRoom.id || normalizedRoom.identifier;
 
     const messageData = {
       roomType: normalizedRoom.room_type,
@@ -278,7 +281,9 @@ export default function useInternalChatData() {
       const response = await internalChatAPI.sendMessage(messageData);
       const savedMessage = response.data?.data;
 
-      const tempIndex = messages.value.findIndex(message => message.id === tempId);
+      const tempIndex = messages.value.findIndex(
+        message => message.id === tempId
+      );
       if (tempIndex !== -1) {
         messages.value.splice(tempIndex, 1);
       }
@@ -298,7 +303,9 @@ export default function useInternalChatData() {
       return savedMessage;
     } catch (error) {
       console.error('❌ Failed to send internal chat message:', error);
-      const tempIndex = messages.value.findIndex(message => message.id === tempId);
+      const tempIndex = messages.value.findIndex(
+        message => message.id === tempId
+      );
       if (tempIndex !== -1) {
         messages.value.splice(tempIndex, 1);
       }
@@ -310,16 +317,17 @@ export default function useInternalChatData() {
   const createDirectRoom = async userId => {
     try {
       const response = await internalChatAPI.createDirectRoom(userId);
-      
+
       // A resposta tem estrutura: response.data = {data: {...}}
       const room = response.data?.data || response.data;
 
       if (room && room.id) {
         const normalizedRoom = normalizeRoom(room, 'direct');
         currentRoom.value = normalizedRoom;
-        const targetRoomId = normalizedRoom.room_id
-          || normalizedRoom.id
-          || normalizedRoom.identifier;
+        const targetRoomId =
+          normalizedRoom.room_id ||
+          normalizedRoom.id ||
+          normalizedRoom.identifier;
 
         await loadMessages(normalizedRoom.room_type, targetRoomId);
         if (messagesMeta.value?.room_id) {
@@ -327,12 +335,19 @@ export default function useInternalChatData() {
         }
 
         if (Array.isArray(rooms.value?.direct_messages)) {
-          const existingIndex = rooms.value.direct_messages.findIndex(item => String(item.id) === String(userId));
-          const existingEntry = existingIndex === -1 ? null : rooms.value.direct_messages[existingIndex];
+          const existingIndex = rooms.value.direct_messages.findIndex(
+            item => String(item.id) === String(userId)
+          );
+          const existingEntry =
+            existingIndex === -1
+              ? null
+              : rooms.value.direct_messages[existingIndex];
 
           const identifier = room.target_user_id || userId;
 
-          const partner = (room.participants || []).find(participant => String(participant.id) === String(userId));
+          const partner = (room.participants || []).find(
+            participant => String(participant.id) === String(userId)
+          );
 
           const directEntry = {
             ...existingEntry,
@@ -375,9 +390,8 @@ export default function useInternalChatData() {
   const selectRoom = async room => {
     const normalizedRoom = normalizeRoom(room);
     currentRoom.value = normalizedRoom;
-    const targetRoomId = normalizedRoom.room_id
-      || normalizedRoom.id
-      || normalizedRoom.identifier;
+    const targetRoomId =
+      normalizedRoom.room_id || normalizedRoom.id || normalizedRoom.identifier;
 
     await loadMessages(normalizedRoom.room_type, targetRoomId);
     if (messagesMeta.value?.room_id) {
@@ -419,7 +433,7 @@ export default function useInternalChatData() {
         disconnect();
       }
     },
-    { immediate: true },
+    { immediate: true }
   );
 
   onUnmounted(() => {

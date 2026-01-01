@@ -98,7 +98,7 @@ export default {
       const { is_contact_sidebar_open: isContactSidebarOpen } = this.uiSettings;
       return isContactSidebarOpen;
     },
-    
+
     shouldShowPdvSidebar() {
       if (!this.currentChat.id) {
         return false;

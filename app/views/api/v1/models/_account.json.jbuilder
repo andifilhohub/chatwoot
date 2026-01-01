@@ -12,6 +12,8 @@ if resource.custom_attributes.present?
     json.logo resource.custom_attributes['logo'] if resource.custom_attributes['logo'].present?
     json.onboarding_step resource.custom_attributes['onboarding_step'] if resource.custom_attributes['onboarding_step'].present?
     json.marked_for_deletion_at resource.custom_attributes['marked_for_deletion_at'] if resource.custom_attributes['marked_for_deletion_at'].present?
+    json.inova_farma_enabled resource.custom_attributes['inova_farma_enabled'] || false
+    json.show_out_of_stock_products resource.custom_attributes.fetch('show_out_of_stock_products', true)
     if resource.custom_attributes['marked_for_deletion_reason'].present?
       json.marked_for_deletion_reason resource.custom_attributes['marked_for_deletion_reason']
     end

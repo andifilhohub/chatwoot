@@ -10,7 +10,7 @@ class IntegrahubProductsAPI extends ApiClient {
   // params: { q, limit, page }
   search(params = {}) {
     const query = new URLSearchParams();
-    Object.keys(params || {}).forEach((k) => {
+    Object.keys(params || {}).forEach(k => {
       if (params[k] !== undefined && params[k] !== null && params[k] !== '') {
         query.append(k, params[k]);
       }

@@ -52,7 +52,9 @@ const buildErrorMessage = error => {
 };
 
 const showAlertError = message => {
-  useAlert(`${t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.API.ERROR_MESSAGE')}: ${message}`);
+  useAlert(
+    `${t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.API.ERROR_MESSAGE')}: ${message}`
+  );
 };
 
 const normalizeQrImage = async rawCode => {
@@ -234,7 +236,9 @@ watch(
 
     <div v-if="isCreatingSession" class="flex flex-col items-center my-8 p-6">
       <div class="flex items-center space-x-3">
-        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div
+          class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"
+        />
         <span class="text-lg">
           {{ t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.LOADING.TITLE') }}
         </span>
@@ -249,7 +253,10 @@ watch(
       class="flex flex-col items-center my-8 p-6 bg-white dark:bg-slate-800 border rounded-lg shadow-sm"
     >
       <div class="w-full max-w-md space-y-4">
-        <label :class="[{ error: v$.channelName.$error }, 'block text-gray-800 dark:text-gray-200']">
+        <label
+          class="block text-gray-800 dark:text-gray-200"
+          :class="[{ error: v$.channelName.$error }]"
+        >
           {{ t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.CHANNEL_NAME.LABEL') }}
           <input
             v-model="channelName"
@@ -257,10 +264,13 @@ watch(
             :placeholder="
               t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.CHANNEL_NAME.PLACEHOLDER')
             "
-            @blur="v$.channelName.$touch"
             class="w-full px-3 py-2 border rounded bg-white text-gray-900 dark:bg-slate-700 dark:text-gray-100"
+            @blur="v$.channelName.$touch"
           />
-          <span v-if="v$.channelName.$error" class="message text-red-700 dark:text-red-300">
+          <span
+            v-if="v$.channelName.$error"
+            class="message text-red-700 dark:text-red-300"
+          >
             {{ t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.CHANNEL_NAME.ERROR') }}
           </span>
         </label>
@@ -270,7 +280,9 @@ watch(
           <input
             v-model="webhookUrl"
             type="text"
-            :placeholder="t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.WEBHOOK_URL.PLACEHOLDER')"
+            :placeholder="
+              t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.WEBHOOK_URL.PLACEHOLDER')
+            "
             class="w-full px-3 py-2 border rounded bg-white text-gray-900 dark:bg-slate-700 dark:text-gray-100"
           />
           <span class="message text-gray-600 dark:text-gray-300">
@@ -293,7 +305,7 @@ watch(
       class="my-8 p-6 bg-red-50 border border-red-200 rounded-lg"
     >
       <div class="flex items-start">
-        <span class="i-ri-error-warning-fill text-red-600 text-2xl mr-3"></span>
+        <span class="i-ri-error-warning-fill text-red-600 text-2xl mr-3" />
         <div>
           <h3 class="text-lg font-medium text-red-800 mb-2">
             {{ t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.ERROR_BANNER.TITLE') }}
@@ -303,8 +315,8 @@ watch(
           </p>
           <div class="mt-4">
             <button
-              @click="createSessionAndShowQR"
               class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+              @click="createSessionAndShowQR"
             >
               {{ t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.ERROR_BANNER.RETRY') }}
             </button>
@@ -328,7 +340,9 @@ watch(
         <img :src="qrCodeData" alt="QR Code" class="w-64 h-64" />
       </div>
       <div class="mt-4 flex items-center">
-        <span class="inline-block w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-2"></span>
+        <span
+          class="inline-block w-2 h-2 bg-yellow-500 rounded-full animate-pulse mr-2"
+        />
         <span class="text-sm text-gray-600 dark:text-gray-300">
           {{ t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.QR_CODE.WAITING') }}
         </span>
@@ -340,7 +354,7 @@ watch(
       class="flex flex-col items-center my-8 p-6 bg-green-50 border border-green-200 rounded-lg"
     >
       <div class="flex items-center mb-2">
-        <span class="i-ri-checkbox-circle-fill text-green-600 text-2xl mr-2"></span>
+        <span class="i-ri-checkbox-circle-fill text-green-600 text-2xl mr-2" />
         <h3 class="text-lg font-medium text-green-800">
           {{ t('INBOX_MGMT.ADD.ZAPHUB_CHANNEL.CONNECTED.TITLE') }}
         </h3>

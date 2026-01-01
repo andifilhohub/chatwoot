@@ -15,7 +15,10 @@ export function useInternalChat() {
   };
 
   const toggleInternalChat = () => {
-    console.log('🎯 toggleInternalChat called, current state:', isInternalChatOpen.value);
+    console.log(
+      '🎯 toggleInternalChat called, current state:',
+      isInternalChatOpen.value
+    );
     isInternalChatOpen.value = !isInternalChatOpen.value;
     console.log('🎯 new state:', isInternalChatOpen.value);
   };

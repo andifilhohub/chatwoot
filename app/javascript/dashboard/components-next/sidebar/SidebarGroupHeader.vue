@@ -20,7 +20,9 @@ const emit = defineEmits(['toggle']);
 
 const showBadge = useMapGetter(props.getterKeys.badge);
 const dynamicCount = useMapGetter(props.getterKeys.count);
-const count = computed(() => (dynamicCount.value > 99 ? '99+' : dynamicCount.value));
+const count = computed(() =>
+  dynamicCount.value > 99 ? '99+' : dynamicCount.value
+);
 
 const countClassComputed = computed(() => {
   if (!dynamicCount.value || props.expandable) return '';
@@ -29,7 +31,9 @@ const countClassComputed = computed(() => {
   }
   // default outline style (legacy look)
   return `rounded-md capitalize text-xs leading-5 font-medium text-center outline outline-1 px-1 flex-shrink-0 ${
-    props.isActive ? 'text-n-blue-text outline-n-slate-6' : 'text-n-slate-11 outline-n-strong'
+    props.isActive
+      ? 'text-n-blue-text outline-n-slate-6'
+      : 'text-n-slate-11 outline-n-strong'
   }`;
 });
 </script>
@@ -60,7 +64,9 @@ const countClassComputed = computed(() => {
       <span class="text-sm font-medium leading-5 truncate">
         {{ label }}
       </span>
-      <span v-if="dynamicCount && !expandable" :class="countClassComputed">{{ count }}</span>
+      <span v-if="dynamicCount && !expandable" :class="countClassComputed">{{
+        count
+      }}</span>
     </div>
     <span
       v-if="expandable"

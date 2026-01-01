@@ -319,6 +319,23 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
     content = extract_message_content(message_data)
     content = '[Unsupported message]' if content.blank?
 
+    # Build content_attributes with whatsapp_message_type
+    content_attrs = {}
+    message_type = message_data[:type]
+    if message_type.present?
+      # Map WhatsApp message types to our format
+      whatsapp_type = case message_type
+                      when 'contact' then 'contactMessage'
+                      when 'location' then 'locationMessage'
+                      when 'image' then 'imageMessage'
+                      when 'video' then 'videoMessage'
+                      when 'audio' then 'audioMessage'
+                      when 'document' then 'documentMessage'
+                      else nil
+                      end
+      content_attrs[:whatsapp_message_type] = whatsapp_type if whatsapp_type
+    end
+
     message_params = {
       account_id: @inbox.account_id,
       inbox_id: @inbox.id,
@@ -327,7 +344,8 @@ class Public::Api::V1::Zaphub::CallbacksController < PublicController
       sender: sent_by_us ? nil : contact,
       content: content,
       source_id: message_identifier,
-      external_source_id_zaphub: message_identifier
+      external_source_id_zaphub: message_identifier,
+      content_attributes: content_attrs
     }
 
     attachments = process_attachments(message_data)

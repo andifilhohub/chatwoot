@@ -212,7 +212,7 @@ export default {
       v-if="showEditModal && enabledOptions['edit']"
       v-model:show="showEditModal"
       :on-close="closeEditModal"
-      :size="'medium'"
+      size="medium"
     >
       <div class="edit-message-modal">
         <h3 class="modal-title">

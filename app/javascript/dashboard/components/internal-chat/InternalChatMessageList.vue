@@ -18,7 +18,7 @@ const isOwnMessage = message => {
   return message.sender_id === props.currentUser?.id;
 };
 
-const getInitials = (name) => {
+const getInitials = name => {
   if (!name) return '?';
   const words = name.split(' ').filter(w => w.length > 0);
   if (words.length === 1) return words[0].charAt(0).toUpperCase();
@@ -41,7 +41,10 @@ const formatTime = timestamp => {
 const scrollToBottom = () => {
   nextTick(() => {
     if (container.value) {
-      console.debug('📜 Scrolling to bottom. ScrollHeight:', container.value.scrollHeight);
+      console.debug(
+        '📜 Scrolling to bottom. ScrollHeight:',
+        container.value.scrollHeight
+      );
       container.value.scrollTop = container.value.scrollHeight;
     } else {
       console.warn('⚠️ Container ref is null, cannot scroll');
@@ -50,10 +53,13 @@ const scrollToBottom = () => {
 };
 
 // Monitora mudanças no array de mensagens
-watch(() => props.messages.length, (newLength, oldLength) => {
-  console.debug('📊 Messages array changed:', { oldLength, newLength });
-  scrollToBottom();
-});
+watch(
+  () => props.messages.length,
+  (newLength, oldLength) => {
+    console.debug('📊 Messages array changed:', { oldLength, newLength });
+    scrollToBottom();
+  }
+);
 
 onMounted(() => {
   scrollToBottom();
@@ -107,7 +113,10 @@ onUnmounted(() => {
             @error="$event.target.style.display = 'none'"
           />
 
-          <div v-else class="w-8 h-8 rounded-full bg-woot-600 flex items-center justify-center text-white text-sm font-medium">
+          <div
+            v-else
+            class="w-8 h-8 rounded-full bg-woot-600 flex items-center justify-center text-white text-sm font-medium"
+          >
             {{ getInitials(message.sender?.name || '') }}
           </div>
         </div>
@@ -146,7 +155,7 @@ onUnmounted(() => {
     </div>
 
     <!-- Scroll to bottom button -->
-      <div v-if="showScrollButton" class="absolute bottom-4 right-4">
+    <div v-if="showScrollButton" class="absolute bottom-4 right-4">
       <button
         class="bg-woot-600 text-white p-2 rounded-full shadow-lg hover:bg-woot-700 transition-colors"
         @click="scrollToBottom"

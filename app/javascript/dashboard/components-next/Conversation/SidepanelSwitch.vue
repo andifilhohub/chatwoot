@@ -24,9 +24,7 @@ const isContactSidebarOpen = computed(
 const isCopilotPanelOpen = computed(
   () => uiSettings.value.is_copilot_panel_open
 );
-const isPdvPanelOpen = computed(
-  () => uiSettings.value.is_pdv_panel_open
-);
+const isPdvPanelOpen = computed(() => uiSettings.value.is_pdv_panel_open);
 
 const toggleConversationSidebarToggle = () => {
   updateUISettings({

@@ -148,8 +148,8 @@ export default {
     class="flex flex-col w-full h-screen min-h-0"
     :dir="isRTL ? 'rtl' : 'ltr'"
   >
-  <!-- UpdateBanner temporarily disabled. To re-enable, uncomment the line below -->
-  <!-- <UpdateBanner :latest-chatwoot-version="latestChatwootVersion" /> -->
+    <!-- UpdateBanner temporarily disabled. To re-enable, uncomment the line below -->
+    <!-- <UpdateBanner :latest-chatwoot-version="latestChatwootVersion" /> -->
     <template v-if="currentAccountId">
       <PendingEmailVerificationBanner v-if="hideOnOnboardingView" />
       <PaymentPendingBanner v-if="hideOnOnboardingView" />

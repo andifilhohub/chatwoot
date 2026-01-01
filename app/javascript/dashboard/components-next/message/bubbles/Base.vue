@@ -15,8 +15,14 @@ const props = defineProps({
   maxWidth: { type: String, default: null },
 });
 
-const { variant, orientation, inReplyTo, shouldGroupWithNext, status, scheduleInfo } =
-  useMessageContext();
+const {
+  variant,
+  orientation,
+  inReplyTo,
+  shouldGroupWithNext,
+  status,
+  scheduleInfo,
+} = useMessageContext();
 const { t } = useI18n();
 
 const varaintBaseMap = {
@@ -66,9 +72,11 @@ const isScheduledPending = computed(
 
 const isScheduledCompleted = computed(() => {
   if (!scheduledAt.value) return false;
-  return [MESSAGE_STATUS.SENT, MESSAGE_STATUS.DELIVERED, MESSAGE_STATUS.READ].includes(
-    status.value
-  );
+  return [
+    MESSAGE_STATUS.SENT,
+    MESSAGE_STATUS.DELIVERED,
+    MESSAGE_STATUS.READ,
+  ].includes(status.value);
 });
 
 const messageClass = computed(() => {

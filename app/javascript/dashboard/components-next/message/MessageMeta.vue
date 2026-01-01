@@ -55,9 +55,7 @@ const dispatchedTimestamp = computed(() => {
   return Math.floor(date.getTime() / 1000);
 });
 
-const scheduledTimezone = computed(
-  () => scheduleInfo.value?.scheduledTimezone
-);
+const scheduledTimezone = computed(() => scheduleInfo.value?.scheduledTimezone);
 
 const scheduledLabel = computed(() => {
   if (!scheduledTimestamp.value) return '';

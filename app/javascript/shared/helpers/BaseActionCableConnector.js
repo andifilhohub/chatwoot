@@ -97,7 +97,10 @@ class BaseActionCableConnector {
         console.warn('⚠️ [ActionCable] No handler for event:', event);
       }
     } else {
-      console.warn('⚠️ [ActionCable] Invalid event data (account_id mismatch?):', data);
+      console.warn(
+        '⚠️ [ActionCable] Invalid event data (account_id mismatch?):',
+        data
+      );
     }
   };
 }

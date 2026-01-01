@@ -13,25 +13,45 @@ const limit = ref(40);
 const totalCount = ref(0);
 
 const searchQuery = ref('');
-const selectedCategory = ref('all');
 
-const categories = computed(() => {
-  const cats = new Set((store.state.integrahubProducts?.items || []).map((p) => p.category).filter(Boolean));
-  return ['all', ...Array.from(cats)];
-});
+const currentAccountId = computed(() => store.getters.getCurrentAccountId);
+const showOutOfStock = computed(() => 
+  store.getters['accounts/showOutOfStockProducts'](currentAccountId.value)
+);
 
 const filteredProducts = computed(() => {
   let items = store.state.integrahubProducts?.items || [];
-  if (selectedCategory.value !== 'all') {
-    items = items.filter((p) => p.category === selectedCategory.value);
+  
+  // Filter out-of-stock products based on account setting
+  if (!showOutOfStock.value) {
+    items = items.filter(p => p.stock > 0);
   }
+  
+  // Additional client-side filter for EAN/barcode search
+  const searchTerm = searchQuery.value?.trim() || '';
+  if (searchTerm) {
+    // If search term is numeric (likely an EAN/barcode), filter by SKU
+    const isNumeric = /^\d+$/.test(searchTerm);
+    if (isNumeric) {
+      items = items.filter(p => p.sku?.includes(searchTerm));
+    }
+    // Note: Non-numeric searches are handled by the API via 'q' parameter
+  }
+  
   return items;
 });
 
 const fetchProducts = async () => {
+  // Build search query
+  let searchTerm = searchQuery.value?.trim() || '';
+  
+  // If search is numeric (EAN/barcode), fetch all products and filter client-side
+  // because the API doesn't support EAN search
+  const isNumeric = /^\d+$/.test(searchTerm);
+  
   // dispatch to vuex module; module uses ApiClient to call backend
   await store.dispatch('integrahubProducts/fetch', {
-    q: searchQuery.value || undefined,
+    q: isNumeric ? undefined : (searchTerm || undefined), // Only send q for text searches
     limit: limit.value,
     page: page.value,
   });
@@ -39,7 +59,9 @@ const fetchProducts = async () => {
   totalCount.value = pagination.count || 0;
 };
 
-const loading = computed(() => store.state.integrahubProducts?.uiFlags?.isFetching);
+const loading = computed(
+  () => store.state.integrahubProducts?.uiFlags?.isFetching
+);
 
 let debounceTimer = null;
 watch(searchQuery, () => {
@@ -50,56 +72,37 @@ watch(searchQuery, () => {
   }, 350);
 });
 
-watch(selectedCategory, () => {
-  // category filtering is client-side, but re-fetch in case API supports category in q
-  page.value = 1;
-  fetchProducts();
-});
-
 onMounted(() => {
   fetchProducts();
 });
 
-const formatPrice = (price) => {
+const formatPrice = price => {
   return new Intl.NumberFormat('pt-BR', {
     style: 'currency',
     currency: 'BRL',
   }).format(price);
 };
 
-const handleAddToCart = (product) => {
+const handleAddToCart = product => {
   emit('add-to-cart', product);
 };
 </script>
 
 <template>
   <div class="flex flex-col h-full">
-    <!-- Busca e Filtros -->
-    <div class="p-4 space-y-3 border-b border-n-weak">
+    <!-- Busca -->
+    <div class="p-4 border-b border-n-weak">
       <Input
         v-model="searchQuery"
-        :placeholder="$t('PDV.SEARCH_PRODUCTS')"
+        :placeholder="$t('PDV.SEARCH_PRODUCTS_WITH_EAN')"
         icon="i-ph-magnifying-glass-bold"
       />
-      
-      <div class="flex gap-2 overflow-x-auto">
-        <Button
-          v-for="category in categories"
-          :key="category"
-          :variant="selectedCategory === category ? 'solid' : 'ghost'"
-          sm
-          slate
-          @click="selectedCategory = category"
-        >
-          {{ category === 'all' ? $t('PDV.ALL_CATEGORIES') : category }}
-        </Button>
-      </div>
     </div>
 
     <!-- Lista de Produtos -->
     <div class="flex-1 overflow-y-auto p-4 space-y-3">
       <div
-          v-if="!loading && filteredProducts.length === 0"
+        v-if="!loading && filteredProducts.length === 0"
         class="flex flex-col items-center justify-center h-full text-center py-8"
       >
         <span class="text-4xl mb-2">📦</span>
@@ -108,9 +111,9 @@ const handleAddToCart = (product) => {
         </p>
       </div>
 
-        <div v-if="loading" class="flex items-center justify-center py-8">
-          <span>Loading...</span>
-        </div>
+      <div v-if="loading" class="flex items-center justify-center py-8">
+        <span>Loading...</span>
+      </div>
 
       <div
         v-for="product in filteredProducts"
@@ -119,7 +122,9 @@ const handleAddToCart = (product) => {
       >
         <div class="flex gap-3">
           <!-- Imagem do Produto -->
-          <div class="w-16 h-16 bg-n-solid-2 rounded flex items-center justify-center flex-shrink-0">
+          <div
+            class="w-16 h-16 bg-n-solid-2 rounded flex items-center justify-center flex-shrink-0"
+          >
             <span class="text-2xl">📦</span>
           </div>
 
@@ -128,9 +133,7 @@ const handleAddToCart = (product) => {
             <h4 class="font-semibold text-n-text truncate">
               {{ product.name }}
             </h4>
-            <p class="text-xs text-n-text-subtle">
-              SKU: {{ product.sku }}
-            </p>
+            <p class="text-xs text-n-text-subtle">SKU: {{ product.sku }}</p>
             <div class="flex items-center justify-between mt-2">
               <span class="text-lg font-bold text-n-brand">
                 {{ formatPrice(product.price) }}
@@ -159,7 +162,9 @@ const handleAddToCart = (product) => {
           @click="handleAddToCart(product)"
         >
           <span class="i-ph-shopping-cart-bold mr-2" />
-          {{ product.stock > 0 ? $t('PDV.ADD_TO_CART') : $t('PDV.OUT_OF_STOCK') }}
+          {{
+            product.stock > 0 ? $t('PDV.ADD_TO_CART') : $t('PDV.OUT_OF_STOCK')
+          }}
         </Button>
       </div>
     </div>

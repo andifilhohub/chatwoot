@@ -35,7 +35,9 @@ class ActionCableListener < BaseListener
     conversation = message.conversation
     tokens = user_tokens(account, conversation.inbox.members) + contact_tokens(conversation.contact_inbox, message)
 
-    broadcast(account, tokens, MESSAGE_CREATED, message.push_event_data)
+    data = message.push_event_data
+    Rails.logger.info "📨 [ActionCable] MESSAGE_CREATED - content_attributes: #{data[:content_attributes].inspect}"
+    broadcast(account, tokens, MESSAGE_CREATED, data)
   end
 
   def message_updated(event)

@@ -48,6 +48,11 @@
     "DOWNLOAD": "Download",
     "UNKNOWN_FILE_TYPE": "Unknown File",
     "SAVE_CONTACT": "Save Contact",
+    "CONTACT_CARD": {
+      "NO_PHONE": "No phone number available",
+      "ADD_CONTACT": "Add Contact",
+      "SEND_MESSAGE": "Message"
+    },
     "NO_CONTENT": "No content to display",
     "SHARED_ATTACHMENT": {
       "CONTACT": "{sender} has shared a contact",

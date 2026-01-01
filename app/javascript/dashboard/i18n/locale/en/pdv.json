@@ -2,8 +2,9 @@
   "PDV": {
     "TITLE": "Point of Sale",
     "PRODUCTS": "Products",
-    "CHECKOUT": "Checkout",
+    "CHECKOUT": "Sell",
     "SEARCH_PRODUCTS": "Search products...",
+    "SEARCH_PRODUCTS_WITH_EAN": "Search by name or barcode (EAN)...",
     "ALL_CATEGORIES": "All",
     "NO_PRODUCTS_FOUND": "No products found",
     "ADD_TO_CART": "Add to Cart",
@@ -16,7 +17,14 @@
     "NOTES_PLACEHOLDER": "Add notes about this sale...",
     "SUBTOTAL": "Subtotal",
     "TOTAL": "Total",
+    "SEND_QUOTE": "Send Quote",
     "FINALIZE_SALE": "Finalize Sale",
-    "CLEAR_CART": "Clear Cart"
+    "CLEAR_CART": "Clear Cart",
+    "INTEGRATION_NOT_ENABLED": {
+      "TITLE": "Inova Farma Integration Not Active",
+      "DESCRIPTION": "Contact our support team to enable the Inova Farma integration and start registering sales directly through Genius Cloud.",
+      "BENEFITS": " Manage inventory, process sales, and track everything in one place!",
+      "CONTACT_SUPPORT": "Contact Support"
+    }
   }
 }

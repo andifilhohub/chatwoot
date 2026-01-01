@@ -488,6 +488,9 @@ export default {
     );
 
     this.fetchAndSetReplyTo();
+    
+    // Listen for external draft updates (e.g., from PDV)
+    emitter.on('load-draft-message', this.handleLoadDraftMessage);
     emitter.on(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, this.fetchAndSetReplyTo);
 
     // A hacky fix to solve the drag and drop
@@ -504,6 +507,7 @@ export default {
     document.removeEventListener('keydown', this.handleKeyEvents);
     emitter.off(BUS_EVENTS.TOGGLE_REPLY_TO_MESSAGE, this.fetchAndSetReplyTo);
     emitter.off(BUS_EVENTS.INSERT_INTO_NORMAL_EDITOR, this.addIntoEditor);
+    emitter.off('load-draft-message', this.handleLoadDraftMessage);
     emitter.off(
       BUS_EVENTS.NEW_CONVERSATION_MODAL,
       this.onNewConversationModalActive
@@ -519,8 +523,7 @@ export default {
     },
     handleScheduleConfirm({ scheduledAt, timezone }) {
       this.scheduledMessageAt = scheduledAt;
-      this.scheduledMessageTimezone =
-        timezone || this.defaultScheduleTimezone;
+      this.scheduledMessageTimezone = timezone || this.defaultScheduleTimezone;
       this.showScheduleMessageModal = false;
     },
     clearScheduledMessage() {
@@ -611,11 +614,40 @@ export default {
     getFromDraft() {
       if (this.conversationIdByRoute) {
         const key = `draft-${this.conversationIdByRoute}-${this.replyType}`;
+        console.log('[ReplyBox] getFromDraft chamado:', {
+          key,
+          conversationId: this.conversationIdByRoute,
+          replyType: this.replyType,
+        });
+        
         const messageFromStore =
           this.$store.getters['draftMessages/get'](key) || '';
+        
+        console.log('[ReplyBox] Mensagem do store:', messageFromStore);
 
         // ensure that the message has signature set based on the ui setting
         this.message = this.toggleSignatureForDraft(messageFromStore);
+        
+        console.log('[ReplyBox] Mensagem final após toggleSignature:', this.message);
+      }
+    },
+    handleLoadDraftMessage({ conversationId, replyType }) {
+      console.log('[ReplyBox] Evento load-draft-message recebido:', {
+        receivedConversationId: conversationId,
+        currentConversationId: this.conversationIdByRoute,
+        receivedReplyType: replyType,
+        currentReplyType: this.replyType,
+        match: conversationId === this.conversationIdByRoute && replyType === this.replyType,
+      });
+      
+      // Only reload draft if it matches the current conversation and reply type
+      if (
+        conversationId === this.conversationIdByRoute &&
+        replyType === this.replyType
+      ) {
+        console.log('[ReplyBox] Chamando getFromDraft()');
+        this.getFromDraft();
+        console.log('[ReplyBox] Mensagem após getFromDraft:', this.message);
       }
     },
     toggleSignatureForDraft(message) {

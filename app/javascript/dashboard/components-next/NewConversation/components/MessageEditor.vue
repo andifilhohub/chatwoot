@@ -19,9 +19,8 @@ const props = defineProps({
   messageSignature: { type: String, default: '' },
 });
 
-const { t } = useI18n();
 const emit = defineEmits(['applyCannedAttachments']);
-
+const { t } = useI18n();
 const modelValue = defineModel({
   type: String,
   default: '',

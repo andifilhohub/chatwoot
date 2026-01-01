@@ -55,17 +55,16 @@ const statusOptions = [
   { value: 'failed', label: t('SCHEDULED_MESSAGES.STATUS.FAILED') },
 ];
 
-const hasActiveFilters = computed(
-  () =>
-    Boolean(
-      filters.status ||
-        filters.agentId ||
-        filters.inboxId ||
-        filters.scheduledFrom ||
-        filters.scheduledTo ||
-        filters.createdFrom ||
-        filters.createdTo
-    )
+const hasActiveFilters = computed(() =>
+  Boolean(
+    filters.status ||
+      filters.agentId ||
+      filters.inboxId ||
+      filters.scheduledFrom ||
+      filters.scheduledTo ||
+      filters.createdFrom ||
+      filters.createdTo
+  )
 );
 
 const agents = useMapGetter('agents/getAgents');
@@ -129,7 +128,11 @@ const fetchMessages = async () => {
   try {
     const { data } = await ScheduledMessagesAPI.list(buildParams());
     messages.value = data.data || [];
-    meta.value = data.meta || { total_count: 0, total_pages: 1, current_page: 1 };
+    meta.value = data.meta || {
+      total_count: 0,
+      total_pages: 1,
+      current_page: 1,
+    };
   } catch (error) {
     useAlert(t('SCHEDULED_MESSAGES.ERRORS.FETCH'));
   } finally {
@@ -295,7 +298,9 @@ const closeEditModal = () => {
       class="sticky top-0 z-10 border-b border-n-weak/80 bg-n-background/95 backdrop-blur"
     >
       <div class="mx-auto flex w-full max-w-[60rem] flex-col gap-4 px-6 py-4">
-        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div
+          class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
           <div class="flex flex-col gap-1">
             <h1 class="text-xl font-semibold text-n-slate-12">
               {{ t('SCHEDULED_MESSAGES.TITLE') }}
@@ -304,7 +309,9 @@ const closeEditModal = () => {
               {{ t('SCHEDULED_MESSAGES.DESCRIPTION') }}
             </p>
           </div>
-          <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+          <div
+            class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center"
+          >
             <Input
               class="w-full sm:w-72"
               :model-value="filters.search"
@@ -326,7 +333,9 @@ const closeEditModal = () => {
                 ghost
                 slate
                 size="sm"
-                :icon="showFilters ? 'i-lucide-filter-x' : 'i-lucide-list-filter'"
+                :icon="
+                  showFilters ? 'i-lucide-filter-x' : 'i-lucide-list-filter'
+                "
                 @click="openFilters"
               >
                 <span class="inline-flex items-center gap-2">
@@ -356,13 +365,21 @@ const closeEditModal = () => {
           class="w-full max-w-4xl rounded-2xl border border-n-weak bg-n-solid-1 shadow-2xl"
           @click.stop
         >
-          <header class="flex items-center justify-between border-b border-n-weak px-6 py-4">
+          <header
+            class="flex items-center justify-between border-b border-n-weak px-6 py-4"
+          >
             <div>
               <h2 class="text-lg font-semibold text-n-slate-12">
-                {{ t('SCHEDULED_MESSAGES.FILTERS_TITLE') || 'Filtrar mensagens agendadas' }}
+                {{
+                  t('SCHEDULED_MESSAGES.FILTERS_TITLE') ||
+                  'Filtrar mensagens agendadas'
+                }}
               </h2>
               <p class="text-sm text-n-slate-11">
-                {{ t('SCHEDULED_MESSAGES.FILTERS_SUBTITLE') || 'Refine a lista usando os filtros abaixo.' }}
+                {{
+                  t('SCHEDULED_MESSAGES.FILTERS_SUBTITLE') ||
+                  'Refine a lista usando os filtros abaixo.'
+                }}
               </p>
             </div>
             <button
@@ -469,7 +486,9 @@ const closeEditModal = () => {
               </div>
             </div>
           </div>
-          <footer class="flex flex-wrap items-center justify-end gap-3 border-t border-n-weak px-6 py-4">
+          <footer
+            class="flex flex-wrap items-center justify-end gap-3 border-t border-n-weak px-6 py-4"
+          >
             <NextButton
               faded
               slate
@@ -488,7 +507,10 @@ const closeEditModal = () => {
       <div v-if="isLoading" class="flex h-full items-center justify-center">
         <Spinner />
       </div>
-      <div v-else-if="!hasResults" class="flex h-full flex-col items-center justify-center gap-2">
+      <div
+        v-else-if="!hasResults"
+        class="flex h-full flex-col items-center justify-center gap-2"
+      >
         <h3 class="text-lg font-medium text-n-slate-12">
           {{ t('SCHEDULED_MESSAGES.EMPTY.TITLE') }}
         </h3>
@@ -513,15 +535,17 @@ const closeEditModal = () => {
                   />
                   <div class="min-w-0 flex flex-1 flex-col gap-0.5">
                     <div class="flex min-w-0 items-center gap-2">
-                      <p class="truncate text-base font-semibold text-n-slate-12">
+                      <p
+                        class="truncate text-base font-semibold text-n-slate-12"
+                      >
                         {{ scheduledMessage.contact?.name || '—' }}
                       </p>
                     </div>
                     <p class="truncate text-sm text-n-slate-11">
                       {{
                         scheduledMessage.contact?.email ||
-                          scheduledMessage.contact?.phone_number ||
-                          '—'
+                        scheduledMessage.contact?.phone_number ||
+                        '—'
                       }}
                     </p>
                   </div>
@@ -546,12 +570,16 @@ const closeEditModal = () => {
               </div>
 
               <div
+                class="w-full rounded-2xl border border-n-weak/60 bg-n-solid-1 px-4 py-3"
                 :class="[
-                  'w-full rounded-2xl border border-n-weak/60 bg-n-solid-1 px-4 py-3',
-                  isExpanded(scheduledMessage.id) ? '' : 'max-h-32 overflow-hidden',
+                  isExpanded(scheduledMessage.id)
+                    ? ''
+                    : 'max-h-32 overflow-hidden',
                 ]"
               >
-                <p class="text-sm text-n-slate-12 whitespace-pre-wrap line-clamp-5">
+                <p
+                  class="text-sm text-n-slate-12 whitespace-pre-wrap line-clamp-5"
+                >
                   {{ scheduledMessage.message?.content || '—' }}
                 </p>
               </div>
@@ -561,48 +589,72 @@ const closeEditModal = () => {
                   v-if="isExpanded(scheduledMessage.id)"
                   class="flex flex-col gap-4 border-t border-n-weak pt-4"
                 >
-                  <div class="grid gap-4 text-sm text-n-slate-12 md:grid-cols-2 lg:grid-cols-4">
+                  <div
+                    class="grid gap-4 text-sm text-n-slate-12 md:grid-cols-2 lg:grid-cols-4"
+                  >
                     <div class="flex flex-col gap-1">
-                      <span class="text-xs font-semibold uppercase text-n-slate-10">
+                      <span
+                        class="text-xs font-semibold uppercase text-n-slate-10"
+                      >
                         {{ t('SCHEDULED_MESSAGES.TABLE.SCHEDULED_FOR') }}
                       </span>
                       <span>
-                        {{ formatTimestamp(resolveScheduledTimestamp(scheduledMessage)) }}
+                        {{
+                          formatTimestamp(
+                            resolveScheduledTimestamp(scheduledMessage)
+                          )
+                        }}
                       </span>
                     </div>
                     <div class="flex flex-col gap-1">
-                      <span class="text-xs font-semibold uppercase text-n-slate-10">
+                      <span
+                        class="text-xs font-semibold uppercase text-n-slate-10"
+                      >
                         {{ t('SCHEDULED_MESSAGES.TABLE.INBOX') }}
                       </span>
                       <span>{{ scheduledMessage.inbox?.name || '—' }}</span>
                     </div>
                     <div class="flex flex-col gap-1">
-                      <span class="text-xs font-semibold uppercase text-n-slate-10">
+                      <span
+                        class="text-xs font-semibold uppercase text-n-slate-10"
+                      >
                         {{ t('SCHEDULED_MESSAGES.TABLE.AGENT') }}
                       </span>
-                      <span>{{ scheduledMessage.message?.sender?.name || '—' }}</span>
+                      <span>{{
+                        scheduledMessage.message?.sender?.name || '—'
+                      }}</span>
                     </div>
                     <div class="flex flex-col gap-1">
-                      <span class="text-xs font-semibold uppercase text-n-slate-10">
+                      <span
+                        class="text-xs font-semibold uppercase text-n-slate-10"
+                      >
                         {{ t('SCHEDULED_MESSAGES.TABLE.ATTACHMENTS') }}
                       </span>
                       <span>{{ scheduledMessage.attachments_count || 0 }}</span>
                     </div>
                     <div class="flex flex-col gap-1">
-                      <span class="text-xs font-semibold uppercase text-n-slate-10">
+                      <span
+                        class="text-xs font-semibold uppercase text-n-slate-10"
+                      >
                         {{ t('SCHEDULED_MESSAGES.TABLE.RECURRENCE') }}
                       </span>
                       <span>—</span>
                     </div>
                   </div>
 
-                  <div class="flex flex-wrap items-center justify-between gap-3 border-t border-n-weak pt-4">
+                  <div
+                    class="flex flex-wrap items-center justify-between gap-3 border-t border-n-weak pt-4"
+                  >
                     <div class="flex flex-col gap-1 text-sm text-n-slate-12">
-                      <span class="text-xs font-semibold uppercase text-n-slate-10">
+                      <span
+                        class="text-xs font-semibold uppercase text-n-slate-10"
+                      >
                         {{ t('SCHEDULED_MESSAGES.TABLE.CREATED_AT') }}
                       </span>
                       <span>
-                        {{ formatCreatedAt(scheduledMessage.message?.created_at) }}
+                        {{
+                          formatCreatedAt(scheduledMessage.message?.created_at)
+                        }}
                       </span>
                     </div>
                     <div class="flex flex-wrap gap-2">
@@ -636,7 +688,10 @@ const closeEditModal = () => {
         </div>
       </div>
     </section>
-    <footer v-if="hasResults" class="flex items-center justify-between border-t border-n-weak px-6 py-3 text-sm">
+    <footer
+      v-if="hasResults"
+      class="flex items-center justify-between border-t border-n-weak px-6 py-3 text-sm"
+    >
       <span class="text-n-slate-11">
         {{ totalCount }}
         {{ totalCount === 1 ? 'item' : 'items' }}
@@ -651,9 +706,7 @@ const closeEditModal = () => {
         >
           ‹
         </NextButton>
-        <span>
-          {{ pagination.page }} / {{ totalPages }}
-        </span>
+        <span> {{ pagination.page }} / {{ totalPages }} </span>
         <NextButton
           faded
           slate

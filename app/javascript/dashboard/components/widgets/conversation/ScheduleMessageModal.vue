@@ -27,7 +27,8 @@ const localDateTime = ref(null);
 const errorMessage = ref('');
 
 const resolvedTimezone = computed(
-  () => props.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+  () =>
+    props.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 );
 
 const initialize = () => {

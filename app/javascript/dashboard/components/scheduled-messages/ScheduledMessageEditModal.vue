@@ -72,9 +72,7 @@ const handleClose = () => {
 
 const handleSubmit = () => {
   if (!localDateTime.value) {
-    errorMessage.value = t(
-      'SCHEDULED_MESSAGES.EDIT_MODAL.ERROR_REQUIRED'
-    );
+    errorMessage.value = t('SCHEDULED_MESSAGES.EDIT_MODAL.ERROR_REQUIRED');
     return;
   }
 
@@ -105,7 +103,9 @@ const hasAttachments = computed(
     />
     <div class="px-6 py-5 flex flex-col gap-4">
       <div class="flex flex-col gap-2">
-        <label class="text-xs font-medium uppercase tracking-wide text-n-slate-11">
+        <label
+          class="text-xs font-medium uppercase tracking-wide text-n-slate-11"
+        >
           {{ t('SCHEDULED_MESSAGES.EDIT_MODAL.CONTENT_LABEL') }}
         </label>
         <textarea
@@ -118,7 +118,9 @@ const hasAttachments = computed(
         </p>
       </div>
       <div class="flex flex-col gap-2">
-        <label class="text-xs font-medium uppercase tracking-wide text-n-slate-11">
+        <label
+          class="text-xs font-medium uppercase tracking-wide text-n-slate-11"
+        >
           {{ t('SCHEDULED_MESSAGES.EDIT_MODAL.SCHEDULE_LABEL') }}
         </label>
         <DatePicker
