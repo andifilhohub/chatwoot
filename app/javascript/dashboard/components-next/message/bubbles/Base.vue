@@ -26,7 +26,7 @@ const {
 const { t } = useI18n();
 
 const varaintBaseMap = {
-  [MESSAGE_VARIANTS.AGENT]: 'bg-n-solid-blue text-n-slate-12',
+  [MESSAGE_VARIANTS.AGENT]: 'bg-woot-100 dark:bg-woot-700 text-n-slate-12',
   [MESSAGE_VARIANTS.PRIVATE]:
     'bg-n-solid-amber text-n-amber-12 [&_.prosemirror-mention-node]:font-semibold',
   [MESSAGE_VARIANTS.USER]: 'bg-n-slate-4 text-n-slate-12',

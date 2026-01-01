@@ -3,6 +3,7 @@ import { computed, ref, watch } from 'vue';
 import BaseBubble from 'next/message/bubbles/Base.vue';
 import FormattedContent from './FormattedContent.vue';
 import ContactCard from './ContactCard.vue';
+import LocationCard from './LocationCard.vue';
 import AttachmentChips from 'next/message/chips/AttachmentChips.vue';
 import TranslationToggle from 'dashboard/components-next/message/TranslationToggle.vue';
 import { MESSAGE_TYPES } from '../../constants';
@@ -50,6 +51,26 @@ const isContactMessage = computed(() => {
   return hasContactHeader && hasNameField;
 });
 
+const isLocationMessage = computed(() => {
+  // Check by content_attributes flag first
+  if (
+    contentAttributes.value?.whatsapp_message_type === 'locationMessage' ||
+    contentAttributes.value?.whatsappMessageType === 'locationMessage' ||
+    contentAttributes.value?.whatsapp_message_type === 'liveLocationMessage' ||
+    contentAttributes.value?.whatsappMessageType === 'liveLocationMessage'
+  ) {
+    return true;
+  }
+
+  // Fallback: detect by content pattern (contains location coordinates)
+  const text = content.value || '';
+  const hasLocationHeader = /\*\*Localização:\*\*/i.test(text);
+  const hasLatitude = /\*Latitud[e]?:\*/i.test(text);
+  const hasLongitude = /\*Longitud[e]?:\*/i.test(text);
+
+  return hasLocationHeader && hasLatitude && hasLongitude;
+});
+
 const isEmpty = computed(() => {
   return !content.value && !attachments.value?.length;
 });
@@ -68,6 +89,7 @@ const handleSeeOriginal = () => {
         {{ $t('CONVERSATION.NO_CONTENT') }}
       </span>
       <ContactCard v-else-if="isContactMessage" :content="renderContent" />
+      <LocationCard v-else-if="isLocationMessage" :content="renderContent" />
       <FormattedContent v-else-if="renderContent" :content="renderContent" />
       <TranslationToggle
         v-if="hasTranslations"
