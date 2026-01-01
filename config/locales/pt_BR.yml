@@ -153,6 +153,10 @@ pt_BR:
     attachment: 'Anexo'
     no_content: 'Sem conteúdo'
   conversations:
+    greeting:
+      good_morning: 'Bom dia'
+      good_afternoon: 'Boa tarde'
+      good_evening: 'Boa noite'
     captain:
       handoff: 'Transferindo para que outro agente dê assistência.'
     messages:

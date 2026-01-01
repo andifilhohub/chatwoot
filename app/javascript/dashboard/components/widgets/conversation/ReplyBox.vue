@@ -383,6 +383,20 @@ export default {
         contact: this.currentContact,
         inbox: this.inbox,
       });
+      
+      // Add time-based greeting variable
+      const currentHour = new Date().getHours();
+      let timeOfDayGreeting = '';
+      if (currentHour >= 5 && currentHour < 12) {
+        timeOfDayGreeting = this.$t('conversations.greeting.good_morning') || 'Good morning';
+      } else if (currentHour >= 12 && currentHour < 18) {
+        timeOfDayGreeting = this.$t('conversations.greeting.good_afternoon') || 'Good afternoon';
+      } else {
+        timeOfDayGreeting = this.$t('conversations.greeting.good_evening') || 'Good evening';
+      }
+      
+      variables['greeting.time_of_day'] = timeOfDayGreeting;
+      
       return variables;
     },
     // ensure that the signature is plain text depending on `showRichContentEditor`

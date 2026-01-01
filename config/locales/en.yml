@@ -167,6 +167,10 @@ en:
     attachment: 'Attachment'
     no_content: 'No content'
   conversations:
+    greeting:
+      good_morning: 'Good morning'
+      good_afternoon: 'Good afternoon'
+      good_evening: 'Good evening'
     captain:
       handoff: 'Transferring to another agent for further assistance.'
     messages:

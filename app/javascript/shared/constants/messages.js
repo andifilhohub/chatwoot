@@ -153,6 +153,10 @@ export const MESSAGE_VARIABLES = [
     label: 'Inbox id',
     key: 'inbox.id',
   },
+  {
+    label: 'Time-based greeting (Good morning/afternoon/evening)',
+    key: 'greeting.time_of_day',
+  },
 ];
 
 export const ATTACHMENT_ICONS = {

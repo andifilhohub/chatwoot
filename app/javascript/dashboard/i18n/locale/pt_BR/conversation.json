@@ -419,5 +419,12 @@
   },
   "GALLERY_VIEW": {
     "ERROR_DOWNLOADING": "Não foi possível baixar o anexo. Por favor, tente novamente"
+  },
+  "conversations": {
+    "greeting": {
+      "good_morning": "Bom dia",
+      "good_afternoon": "Boa tarde",
+      "good_evening": "Boa noite"
+    }
   }
 }
