@@ -85,6 +85,19 @@ export const getters = {
     return messageSignature || '';
   },
 
+  getMessagePrefix($state) {
+    const {
+      message_prefix: messagePrefix,
+      enable_message_prefix: enableMessagePrefix,
+      name,
+    } = $state.currentUser;
+
+    if (!enableMessagePrefix || !messagePrefix) return '';
+
+    // Substitui {agentName} ou {agent_name} pelo nome do agente
+    return messagePrefix.replace(/\{agent_?name\}/gi, name || 'Agent');
+  },
+
   getCurrentAccount($state, $getters) {
     const { accounts = [] } = $state.currentUser;
     const [currentAccount = {}] = accounts.filter(

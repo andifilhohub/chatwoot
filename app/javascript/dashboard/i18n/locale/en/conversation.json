@@ -51,7 +51,14 @@
     "CONTACT_CARD": {
       "NO_PHONE": "No phone number available",
       "ADD_CONTACT": "Add Contact",
-      "SEND_MESSAGE": "Message"
+      "SEND_MESSAGE": "Message",
+      "CREATING": "Creating...",
+      "MISSING_INFO": "Contact name or phone number is missing",
+      "CONTACT_CREATED": "Contact created successfully",
+      "CONTACT_CREATE_ERROR": "Failed to create contact. Please try again.",
+      "PHONE_EXISTS": "A contact with this phone number already exists",
+      "EMAIL_EXISTS": "A contact with this email already exists",
+      "CONTACT_EXISTS": "This contact already exists"
     },
     "NO_CONTENT": "No content to display",
     "SHARED_ATTACHMENT": {

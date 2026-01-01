@@ -10,6 +10,7 @@ import { parseAPIErrorResponse } from 'dashboard/store/utils/api';
 import UserProfilePicture from './UserProfilePicture.vue';
 import UserBasicDetails from './UserBasicDetails.vue';
 import MessageSignature from './MessageSignature.vue';
+import MessagePrefix from './MessagePrefix.vue';
 import FontSize from './FontSize.vue';
 import UserLanguageSelect from './UserLanguageSelect.vue';
 import HotKeyCard from './HotKeyCard.vue';
@@ -27,6 +28,7 @@ import {
 export default {
   components: {
     MessageSignature,
+    MessagePrefix,
     FormSection,
     FontSize,
     UserLanguageSelect,
@@ -60,6 +62,8 @@ export default {
       displayName: '',
       email: '',
       messageSignature: '',
+      messagePrefix: '',
+      enableMessagePrefix: false,
       hotKeys: [
         {
           key: 'enter',
@@ -96,6 +100,18 @@ export default {
       globalConfig: 'globalConfig/get',
     }),
   },
+  watch: {
+    currentUser: {
+      handler(newUser) {
+        if (newUser) {
+          this.messagePrefix = newUser.message_prefix || '';
+          this.enableMessagePrefix = newUser.enable_message_prefix || false;
+        }
+      },
+      deep: true,
+      immediate: true,
+    },
+  },
   mounted() {
     if (this.currentUserId) {
       this.initializeUser();
@@ -108,6 +124,8 @@ export default {
       this.avatarUrl = this.currentUser.avatar_url;
       this.displayName = this.currentUser.display_name;
       this.messageSignature = this.currentUser.message_signature;
+      this.messagePrefix = this.currentUser.message_prefix || '';
+      this.enableMessagePrefix = this.currentUser.enable_message_prefix || false;
     },
     async dispatchUpdate(payload, successMessage, errorMessage) {
       let alertMessage = '';
@@ -155,6 +173,20 @@ export default {
       );
       let errorMessage = this.$t(
         'PROFILE_SETTINGS.FORM.MESSAGE_SIGNATURE_SECTION.API_ERROR'
+      );
+
+      await this.dispatchUpdate(payload, successMessage, errorMessage);
+    },
+    async updatePrefix(prefixData) {
+      const payload = {
+        message_prefix: prefixData.message_prefix,
+        enable_message_prefix: prefixData.enable_message_prefix,
+      };
+      let successMessage = this.$t(
+        'PROFILE_SETTINGS.FORM.MESSAGE_PREFIX_SECTION.API_SUCCESS'
+      );
+      let errorMessage = this.$t(
+        'PROFILE_SETTINGS.FORM.MESSAGE_PREFIX_SECTION.API_ERROR'
       );
 
       await this.dispatchUpdate(payload, successMessage, errorMessage);
@@ -246,6 +278,17 @@ export default {
       <MessageSignature
         :message-signature="messageSignature"
         @update-signature="updateSignature"
+      />
+    </FormSection>
+    <FormSection
+      :title="$t('PROFILE_SETTINGS.FORM.MESSAGE_PREFIX_SECTION.TITLE')"
+      :description="$t('PROFILE_SETTINGS.FORM.MESSAGE_PREFIX_SECTION.NOTE')"
+    >
+      <MessagePrefix
+        :message-prefix="messagePrefix"
+        :enable-message-prefix="enableMessagePrefix"
+        :user-name="name"
+        @update-prefix="updatePrefix"
       />
     </FormSection>
     <FormSection

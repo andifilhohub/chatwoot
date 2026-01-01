@@ -1,6 +1,9 @@
 <script setup>
-import { computed } from 'vue';
+import { computed, ref, getCurrentInstance } from 'vue';
+import { useStore } from 'vuex';
+import { useAlert } from 'dashboard/composables';
 import Icon from 'next/icon/Icon.vue';
+import { useMessageContext } from '../../provider.js';
 
 const props = defineProps({
   content: {
@@ -8,6 +11,13 @@ const props = defineProps({
     required: true,
   },
 });
+
+const store = useStore();
+const { conversationId, inboxId } = useMessageContext();
+const instance = getCurrentInstance();
+const t = instance.proxy.$t;
+
+const isCreating = ref(false);
 
 const contactData = computed(() => {
   const lines = props.content.split('\n').filter(line => line.trim());
@@ -43,13 +53,63 @@ const primaryPhone = computed(() => {
   return contactData.value.phones[0] || '';
 });
 
-const handleAddContact = () => {
-  // TODO: Implementar lógica para adicionar contato
+// Normaliza o número de telefone para o formato E.164
+const normalizePhoneNumber = (phone) => {
+  if (!phone) return '';
+  
+  // Remove todos os caracteres que não são números ou +
+  let normalized = phone.replace(/[^\d+]/g, '');
+  
+  // Se não começar com +, adiciona +
+  if (!normalized.startsWith('+')) {
+    normalized = `+${normalized}`;
+  }
+  
+  return normalized;
 };
 
-const handleSendMessage = () => {
-  if (primaryPhone.value) {
-    // TODO: Implementar lógica para enviar mensagem
+const handleAddContact = async () => {
+  if (!contactData.value.name || !primaryPhone.value) {
+    useAlert(t('CONVERSATION.CONTACT_CARD.MISSING_INFO'));
+    return;
+  }
+
+  if (isCreating.value) return;
+
+  isCreating.value = true;
+
+  try {
+    const normalizedPhone = normalizePhoneNumber(primaryPhone.value);
+    
+    const contactParams = {
+      name: contactData.value.name,
+      phoneNumber: normalizedPhone,
+      inboxId: inboxId.value,
+    };
+
+    const contact = await store.dispatch('contacts/create', contactParams);
+    
+    if (contact?.id) {
+      useAlert(t('CONVERSATION.CONTACT_CARD.CONTACT_CREATED'));
+    }
+  } catch (error) {
+    // Trata erro de contato duplicado
+    if (error.name === 'DuplicateContactException') {
+      const attributes = error.data || [];
+      if (attributes.includes('phone_number')) {
+        useAlert(t('CONVERSATION.CONTACT_CARD.PHONE_EXISTS'));
+      } else if (attributes.includes('email')) {
+        useAlert(t('CONVERSATION.CONTACT_CARD.EMAIL_EXISTS'));
+      } else {
+        useAlert(t('CONVERSATION.CONTACT_CARD.CONTACT_EXISTS'));
+      }
+    } else if (error.message) {
+      useAlert(error.message);
+    } else {
+      useAlert(t('CONVERSATION.CONTACT_CARD.CONTACT_CREATE_ERROR'));
+    }
+  } finally {
+    isCreating.value = false;
   }
 };
 </script>
@@ -102,27 +162,16 @@ const handleSendMessage = () => {
         </div>
       </div>
 
-      <!-- Action Buttons -->
-      <div
-        class="grid grid-cols-2 gap-0 border-t border-slate-200/60 dark:border-slate-700/60"
-      >
+      <!-- Action Button -->
+      <div class="border-t border-slate-200/60 dark:border-slate-700/60">
         <button
           type="button"
-          class="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-woot-600 dark:text-woot-400 hover:bg-slate-100/80 dark:hover:bg-slate-700/50 transition-colors border-r border-slate-200/60 dark:border-slate-700/60"
+          class="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-medium text-woot-600 dark:text-woot-400 hover:bg-slate-100/80 dark:hover:bg-slate-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          :disabled="isCreating || !contactData.name || !primaryPhone"
           @click="handleAddContact"
         >
           <Icon icon="i-lucide-user-plus" class="size-4" />
-          <span>{{ $t('CONVERSATION.CONTACT_CARD.ADD_CONTACT') }}</span>
-        </button>
-
-        <button
-          type="button"
-          class="flex items-center justify-center gap-2 px-4 py-3 text-sm font-medium text-woot-600 dark:text-woot-400 hover:bg-slate-100/80 dark:hover:bg-slate-700/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          :disabled="!primaryPhone"
-          @click="handleSendMessage"
-        >
-          <Icon icon="i-lucide-message-circle" class="size-4" />
-          <span>{{ $t('CONVERSATION.CONTACT_CARD.SEND_MESSAGE') }}</span>
+          <span>{{ isCreating ? $t('CONVERSATION.CONTACT_CARD.CREATING') : $t('CONVERSATION.CONTACT_CARD.ADD_CONTACT') }}</span>
         </button>
       </div>
     </div>

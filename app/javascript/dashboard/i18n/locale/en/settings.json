@@ -70,6 +70,21 @@
         "IMAGE_UPLOAD_SUCCESS": "Image added successfully. Please click on save to save the signature",
         "IMAGE_UPLOAD_SIZE_ERROR": "Image size should be less than {size}MB"
       },
+      "MESSAGE_PREFIX_SECTION": {
+        "TITLE": "Sender name prefix",
+        "NOTE": "Add your name automatically at the beginning of each message you send. Use {agentName} to insert your name dynamically.",
+        "BTN_TEXT": "Save sender prefix",
+        "API_ERROR": "Couldn't save prefix! Try again",
+        "API_SUCCESS": "Sender prefix saved successfully",
+        "ENABLE": "Enable sender name prefix",
+        "ENABLE_HELP": "When enabled, your messages will start with your name followed by a colon"
+      },
+      "MESSAGE_PREFIX": {
+        "LABEL": "Prefix Template",
+        "PLACEHOLDER": "{agentName}:",
+        "HELP": "Use {agentName} to automatically insert your name. Example: {agentName}: will become Anderson:",
+        "PREVIEW": "Preview"
+      },
       "MESSAGE_SIGNATURE": {
         "LABEL": "Message Signature",
         "ERROR": "Message Signature cannot be empty",

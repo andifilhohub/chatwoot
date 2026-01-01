@@ -137,6 +137,7 @@ export default {
     ...mapGetters({
       currentChat: 'getSelectedChat',
       messageSignature: 'getMessageSignature',
+      messagePrefix: 'getMessagePrefix',
       currentUser: 'getCurrentUser',
       lastEmail: 'getLastEmailInSelectedChat',
       globalConfig: 'globalConfig/get',
@@ -344,6 +345,9 @@ export default {
     },
     sendWithSignature() {
       return this.fetchSignatureFlagFromUISettings(this.channelType);
+    },
+    sendWithPrefix() {
+      return !this.isPrivate && !!this.messagePrefix;
     },
     editorMessageKey() {
       const { editor_message_key: isEnabled } = this.uiSettings;
@@ -1078,9 +1082,15 @@ export default {
     },
     getMultipleMessagesPayload(message) {
       const multipleMessagePayload = [];
+      
+      // Prepend message prefix if enabled
+      let messageContent = message;
+      if (this.sendWithPrefix) {
+        messageContent = `***${this.messagePrefix}***\n\n${messageContent}`;
+      }
 
       if (this.attachedFiles && this.attachedFiles.length) {
-        let caption = this.isAnInstagramChannel ? '' : message;
+        let caption = this.isAnInstagramChannel ? '' : messageContent;
         this.attachedFiles.forEach(attachment => {
           const attachedFile =
             attachment.blobSignedId || attachment?.resource?.file;
@@ -1114,7 +1124,7 @@ export default {
       ) {
         let messagePayload = {
           conversationId: this.currentChat.id,
-          message,
+          message: messageContent,
           private: false,
           sender: this.sender,
         };
@@ -1131,9 +1141,16 @@ export default {
       return multipleMessagePayload;
     },
     getMessagePayload(message) {
+      let messageContent = message;
+      
+      // Prepend message prefix if enabled
+      if (this.sendWithPrefix) {
+        messageContent = `**${this.messagePrefix}**\n${messageContent}`;
+      }
+
       let messagePayload = {
         conversationId: this.currentChat.id,
-        message,
+        message: messageContent,
         private: this.isPrivate,
         sender: this.sender,
       };

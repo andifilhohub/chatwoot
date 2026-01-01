@@ -64,6 +64,8 @@ class Api::V1::ProfilesController < Api::BaseController
       :display_name,
       :avatar,
       :message_signature,
+      :message_prefix,
+      :enable_message_prefix,
       :account_id,
       ui_settings: {}
     )
