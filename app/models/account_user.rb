@@ -36,7 +36,7 @@ class AccountUser < ApplicationRecord
 
   accepts_nested_attributes_for :account
 
-  after_create_commit :notify_creation, :create_notification_setting
+  after_create_commit :notify_creation, :create_notification_setting, :initialize_user_settings
   after_destroy :notify_deletion, :remove_user_from_account
   after_save :update_presence_in_redis, if: :saved_change_to_availability?
 
@@ -44,9 +44,31 @@ class AccountUser < ApplicationRecord
 
   def create_notification_setting
     setting = user.notification_settings.new(account_id: account.id)
-    setting.selected_email_flags = [:email_conversation_assignment]
-    setting.selected_push_flags = [:push_conversation_assignment]
+    setting.selected_email_flags = [
+      :email_conversation_assignment,
+      :email_assigned_conversation_new_message,
+      :email_conversation_mention
+    ]
+    setting.selected_push_flags = [
+      :push_conversation_assignment,
+      :push_assigned_conversation_new_message,
+      :push_conversation_mention
+    ]
     setting.save!
+  end
+
+  def initialize_user_settings
+    return if user.ui_settings.present?
+
+    user.update!(
+      ui_settings: {
+        enable_audio_alerts: 'assigned',
+        notification_tone: 'bell',
+        enter_to_send_enabled: true,
+        always_play_audio_alert: false,
+        alert_if_unread_assigned_conversation_exist: false
+      }
+    )
   end
 
   def remove_user_from_account

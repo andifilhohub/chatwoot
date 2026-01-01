@@ -43,20 +43,11 @@ const googleMapsUrl = computed(() => {
   return `https://maps.google.com/?q=${locationData.value.latitude},${locationData.value.longitude}`;
 });
 
-const staticMapUrl = computed(() => {
-  if (!locationData.value.latitude || !locationData.value.longitude) {
-    return '';
-  }
-  const { latitude, longitude } = locationData.value;
-  const zoom = 15;
-  const size = '400x200';
-  const marker = `color:red|${latitude},${longitude}`;
-  
-  return `https://maps.googleapis.com/maps/api/staticmap?center=${latitude},${longitude}&zoom=${zoom}&size=${size}&markers=${marker}&key=YOUR_API_KEY`;
-});
-
 const hasValidCoordinates = computed(() => {
-  return locationData.value.latitude !== null && locationData.value.longitude !== null;
+  return (
+    locationData.value.latitude !== null &&
+    locationData.value.longitude !== null
+  );
 });
 </script>
 
@@ -67,37 +58,45 @@ const hasValidCoordinates = computed(() => {
     >
       <!-- Map Preview Section -->
       <div class="relative h-40 bg-slate-100 dark:bg-slate-800 overflow-hidden">
-        <div
-          v-if="hasValidCoordinates"
-          class="absolute inset-0"
-        >
+        <div v-if="hasValidCoordinates" class="absolute inset-0">
           <!-- Simulated map grid background -->
           <div class="absolute inset-0 opacity-20">
             <svg class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
               <defs>
-                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-                  <path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" stroke-width="0.5" class="text-slate-400"/>
+                <pattern
+                  id="grid"
+                  width="40"
+                  height="40"
+                  patternUnits="userSpaceOnUse"
+                >
+                  <path
+                    d="M 40 0 L 0 0 0 40"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="0.5"
+                    class="text-slate-400"
+                  />
                 </pattern>
               </defs>
               <rect width="100%" height="100%" fill="url(#grid)" />
             </svg>
           </div>
-          
+
           <!-- Map pin indicator -->
           <div class="absolute inset-0 flex items-center justify-center">
             <div class="relative">
               <!-- Ping animation circle -->
               <div class="absolute inset-0 flex items-center justify-center">
-                <div class="size-20 rounded-full bg-green-500/20 animate-ping"></div>
+                <div
+                  class="size-20 rounded-full bg-green-500/20 animate-ping"
+                />
               </div>
               <!-- Pin icon -->
               <div class="relative z-10 flex flex-col items-center">
                 <Icon
                   icon="i-lucide-map-pin"
                   class="size-12 text-green-600 dark:text-green-500 drop-shadow-lg"
-                  style="filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2))"
                 />
-                
               </div>
             </div>
           </div>
@@ -128,8 +127,11 @@ const hasValidCoordinates = computed(() => {
               </span>
             </div>
 
-            <div v-if="hasValidCoordinates" class="text-sm text-slate-600 dark:text-slate-400">
-              Clique para visualizar no mapa
+            <div
+              v-if="hasValidCoordinates"
+              class="text-sm text-slate-600 dark:text-slate-400"
+            >
+              {{ $t('COMPONENTS.LOCATION_BUBBLE.CLICK_TO_VIEW') }}
             </div>
           </div>
         </div>
@@ -145,7 +147,7 @@ const hasValidCoordinates = computed(() => {
           class="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-medium text-woot-600 dark:text-woot-400 hover:bg-slate-100/80 dark:hover:bg-slate-700/50 transition-colors"
         >
           <Icon icon="i-lucide-external-link" class="size-4" />
-          <span>Abrir no Google Maps</span>
+          <span>{{ $t('COMPONENTS.LOCATION_BUBBLE.OPEN_IN_MAPS') }}</span>
         </a>
         <button
           v-else
@@ -154,7 +156,9 @@ const hasValidCoordinates = computed(() => {
           class="flex items-center justify-center gap-2 w-full px-4 py-3 text-sm font-medium text-slate-400 dark:text-slate-600 cursor-not-allowed"
         >
           <Icon icon="i-lucide-map-pin-off" class="size-4" />
-          <span>Coordenadas inválidas</span>
+          <span>{{
+            $t('COMPONENTS.LOCATION_BUBBLE.INVALID_COORDINATES')
+          }}</span>
         </button>
       </div>
     </div>
