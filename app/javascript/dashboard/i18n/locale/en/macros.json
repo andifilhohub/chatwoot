@@ -102,6 +102,9 @@
       "ADD_PRIVATE_NOTE": "Add a Private Note",
       "SEND_WEBHOOK_EVENT": "Send Webhook Event"
     },
+    "ASSIGN_AGENT_OPTIONS": {
+      "NONE": "None"
+    },
     "PRIORITY_TYPES": {
       "NONE": "None",
       "LOW": "Low",
