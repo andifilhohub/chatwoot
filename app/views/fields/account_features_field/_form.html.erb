@@ -1,0 +1,86 @@
+<div class="space-y-6">
+  <!-- Standard Features -->
+  <div>
+    <h3 class="text-sm font-semibold text-slate-700 mb-3">Features</h3>
+    <div class="grid grid-cols-2 gap-x-6 gap-y-1.5">
+      <% field.grouped_features[:regular].each do |feature| %>
+        <% feature_name = feature['name'] %>
+        <% is_enabled = field.feature_enabled?(feature_name) %>
+        <label 
+          for="<%= "#{field.attribute}_#{feature_name}" %>"
+          class="flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-slate-50"
+        >
+          <input 
+            type="checkbox" 
+            name="enabled_features[]" 
+            value="<%= feature_name %>" 
+            id="<%= "#{field.attribute}_#{feature_name}" %>"
+            <%= 'checked' if is_enabled %>
+            class="w-4 h-4 rounded border-slate-300 text-woot-600 focus:ring-woot-500 focus:ring-offset-0 cursor-pointer"
+          />
+          <span class="text-sm text-slate-900 flex-1"><%= field.feature_display_name(feature) %></span>
+          <% if feature['help_url'].present? %>
+            <a 
+              href="<%= feature['help_url'] %>" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              class="text-slate-400 hover:text-woot-600 transition-colors"
+              onclick="event.stopPropagation()"
+              title="Documentation"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+              </svg>
+            </a>
+          <% end %>
+        </label>
+      <% end %>
+    </div>
+  </div>
+
+  <!-- Premium Features -->
+  <% if field.grouped_features[:premium].any? %>
+    <div>
+      <div class="flex items-center gap-2 mb-3">
+        <h3 class="text-sm font-semibold text-slate-700">Premium</h3>
+        <span class="px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-700">PRO</span>
+      </div>
+      <div class="grid grid-cols-2 gap-x-6 gap-y-1.5">
+        <% field.grouped_features[:premium].each do |feature| %>
+          <% feature_name = feature['name'] %>
+          <% is_enabled = field.feature_enabled?(feature_name) %>
+          <label 
+            for="<%= "#{field.attribute}_#{feature_name}" %>"
+            class="flex items-center gap-3 px-3 py-2 rounded-md cursor-pointer transition-colors hover:bg-amber-50"
+          >
+            <input 
+              type="checkbox" 
+              name="enabled_features[]" 
+              value="<%= feature_name %>" 
+              id="<%= "#{field.attribute}_#{feature_name}" %>"
+              <%= 'checked' if is_enabled %>
+              class="w-4 h-4 rounded border-amber-300 text-amber-600 focus:ring-amber-500 focus:ring-offset-0 cursor-pointer"
+            />
+            <span class="text-sm text-slate-900 flex-1"><%= field.feature_display_name(feature) %></span>
+            <% if feature['help_url'].present? %>
+              <a 
+                href="<%= feature['help_url'] %>" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                class="text-slate-400 hover:text-amber-600 transition-colors"
+                onclick="event.stopPropagation()"
+                title="Documentation"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+              </a>
+            <% end %>
+          </label>
+        <% end %>
+      </div>
+    </div>
+  <% end %>
+
+  <%= hidden_field_tag 'enabled_features[]', '' %>
+</div>

@@ -1,0 +1,30 @@
+<div class="space-y-4">
+  <% field.grouped_features[:regular].each do |feature| %>
+    <% feature_name = feature['name'] %>
+    <div class="flex items-center justify-between text-sm">
+      <span class="text-slate-800"><%= field.feature_display_name(feature) %></span>
+      <% if field.feature_enabled?(feature_name) %>
+        <span class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Enabled</span>
+      <% else %>
+        <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Disabled</span>
+      <% end %>
+    </div>
+  <% end %>
+
+  <% if field.grouped_features[:premium].any? %>
+    <div class="border-t border-slate-200 pt-3">
+      <div class="mb-2 text-xs font-semibold uppercase text-slate-500">Premium</div>
+      <% field.grouped_features[:premium].each do |feature| %>
+        <% feature_name = feature['name'] %>
+        <div class="flex items-center justify-between text-sm">
+          <span class="text-slate-800"><%= field.feature_display_name(feature) %></span>
+          <% if field.feature_enabled?(feature_name) %>
+            <span class="rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">Enabled</span>
+          <% else %>
+            <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">Disabled</span>
+          <% end %>
+        </div>
+      <% end %>
+    </div>
+  <% end %>
+</div>

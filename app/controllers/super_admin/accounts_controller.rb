@@ -36,7 +36,24 @@ class SuperAdmin::AccountsController < SuperAdmin::ApplicationController
   def resource_params
     permitted_params = super
     permitted_params[:limits] = permitted_params[:limits].to_h.compact
-    permitted_params[:selected_feature_flags] = params[:enabled_features].keys.map(&:to_sym) if params[:enabled_features].present?
+    if params.key?(:enabled_features)
+      enabled_features = params[:enabled_features]
+      enabled_feature_names =
+        if enabled_features.is_a?(ActionController::Parameters) || enabled_features.is_a?(Hash)
+          enabled_features.keys
+        else
+          Array(enabled_features)
+        end
+
+      valid_flags = Account::FEATURES.values
+      permitted_params[:selected_feature_flags] =
+        enabled_feature_names.filter_map do |feature|
+          next if feature.blank?
+
+          flag = "feature_#{feature}"
+          flag.to_sym if valid_flags.include?(flag.to_sym)
+        end
+    end
     permitted_params
   end
 
