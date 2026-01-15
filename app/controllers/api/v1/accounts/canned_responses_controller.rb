@@ -71,8 +71,9 @@ class Api::V1::Accounts::CannedResponsesController < Api::V1::Accounts::BaseCont
   end
 
   def process_uploaded_files(canned_response, uploaded_files)
-    return if uploaded_files.nil?
+    return if uploaded_files.blank?
 
+    uploaded_files = uploaded_files.is_a?(Array) ? uploaded_files : uploaded_files.values
     uploaded_files = uploaded_files.map(&:to_h)
 
     retained_blob_ids = []

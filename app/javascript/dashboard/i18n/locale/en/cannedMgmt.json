@@ -72,6 +72,12 @@
         "YES": "Yes, delete ",
         "NO": "No, keep "
       }
+    },
+    "FORM": {
+      "ATTACHMENTS": {
+        "LABEL": "Attachments",
+        "ADD": "Add attachment"
+      }
     }
   }
 }

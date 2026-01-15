@@ -53,7 +53,9 @@ const actions = {
   ) {
     commit(types.default.SET_CANNED_UI_FLAG, { creatingItem: true });
     try {
-      const response = await CannedResponseAPI.create(cannedObj);
+      const response = await CannedResponseAPI.create({
+        canned_response: cannedObj,
+      });
       commit(types.default.ADD_CANNED, response.data);
       commit(types.default.SET_CANNED_UI_FLAG, { creatingItem: false });
       return response.data;
@@ -69,7 +71,9 @@ const actions = {
   ) {
     commit(types.default.SET_CANNED_UI_FLAG, { updatingItem: true });
     try {
-      const response = await CannedResponseAPI.update(id, updateObj);
+      const response = await CannedResponseAPI.update(id, {
+        canned_response: updateObj,
+      });
       commit(types.default.EDIT_CANNED, response.data);
       commit(types.default.SET_CANNED_UI_FLAG, { updatingItem: false });
       return response.data;

@@ -42,6 +42,7 @@ export default {
         message: '',
       },
       attachments: [],
+      pendingUploads: 0,
       maxFileSize: MAXIMUM_FILE_UPLOAD_SIZE,
       show: true,
     };
@@ -132,6 +133,7 @@ export default {
       }
     },
     uploadFromDirectUpload(file) {
+      this.pendingUploads += 1;
       const upload = new DirectUpload(
         file.file,
         `/api/v1/accounts/${this.accountId}/canned_responses/direct_uploads`,
@@ -148,11 +150,15 @@ export default {
       upload.create((error, blob) => {
         if (error) {
           useAlert(error);
+          this.pendingUploads = Math.max(this.pendingUploads - 1, 0);
         } else {
           const exists = this.attachments.some(
             attachment => attachment.signed_id === blob.signed_id
           );
-          if (exists) return;
+          if (exists) {
+            this.pendingUploads = Math.max(this.pendingUploads - 1, 0);
+            return;
+          }
 
           this.attachments.push({
             blob_id: blob.id,
@@ -163,10 +169,12 @@ export default {
             file_url: URL.createObjectURL(file.file),
             isPersisted: false,
           });
+          this.pendingUploads = Math.max(this.pendingUploads - 1, 0);
         }
       });
     },
     async uploadViaBackend(file) {
+      this.pendingUploads += 1;
       try {
         const { blobId, signedId, fileUrl } = await uploadFile(
           file.file,
@@ -176,7 +184,10 @@ export default {
         const exists = this.attachments.some(
           attachment => attachment.signed_id === signedId
         );
-        if (exists) return;
+        if (exists) {
+          this.pendingUploads = Math.max(this.pendingUploads - 1, 0);
+          return;
+        }
 
         this.attachments.push({
           blob_id: Number(blobId),
@@ -187,31 +198,41 @@ export default {
           file_url: fileUrl,
           isPersisted: false,
         });
+        this.pendingUploads = Math.max(this.pendingUploads - 1, 0);
       } catch (error) {
         useAlert(
           error?.message || this.$t('CANNED_MGMT.ADD.API.ERROR_MESSAGE')
         );
+        this.pendingUploads = Math.max(this.pendingUploads - 1, 0);
       }
     },
     handleAttachmentUpload(file) {
-      if (!file || !file.file) return;
+      const files = Array.isArray(file) ? file : [file];
 
-      if (!checkFileSizeLimit(file, this.maxFileSize)) {
-        useAlert(
-          this.$t('CONVERSATION.FILE_SIZE_LIMIT', {
-            MAXIMUM_SUPPORTED_FILE_UPLOAD_SIZE: this.maxFileSize,
-          })
-        );
-        return;
-      }
+      files.forEach(fileItem => {
+        if (!fileItem || !fileItem.file) return;
 
-      if (this.globalConfig.directUploadsEnabled) {
-        this.uploadFromDirectUpload(file);
-      } else {
-        this.uploadViaBackend(file);
-      }
+        if (!checkFileSizeLimit(fileItem, this.maxFileSize)) {
+          useAlert(
+            this.$t('CONVERSATION.FILE_SIZE_LIMIT', {
+              MAXIMUM_SUPPORTED_FILE_UPLOAD_SIZE: this.maxFileSize,
+            })
+          );
+          return;
+        }
+
+        if (this.globalConfig.directUploadsEnabled) {
+          this.uploadFromDirectUpload(fileItem);
+        } else {
+          this.uploadViaBackend(fileItem);
+        }
+      });
     },
     addCannedResponse() {
+      if (this.pendingUploads > 0) {
+        useAlert(this.$t('CONVERSATION.FILE_UPLOAD_IN_PROGRESS'));
+        return;
+      }
       // Show loading on button
       this.addCanned.showLoading = true;
       // Make API Calls
@@ -336,7 +357,8 @@ export default {
             :disabled="
               v$.content.$invalid ||
               v$.shortCode.$invalid ||
-              addCanned.showLoading
+              addCanned.showLoading ||
+              pendingUploads > 0
             "
             :is-loading="addCanned.showLoading"
           />
