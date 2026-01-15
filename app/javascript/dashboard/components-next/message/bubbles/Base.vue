@@ -64,7 +64,9 @@ const baseOrientationClasses = computed(() => {
   return ['rounded-lg'];
 });
 
-const scheduledAt = computed(() => scheduleInfo?.value?.scheduledAt);
+const scheduledAt = computed(
+  () => scheduleInfo?.value?.scheduledAt || scheduleInfo?.value?.scheduled_at
+);
 
 const isScheduledPending = computed(
   () => status.value === MESSAGE_STATUS.SCHEDULED && scheduledAt.value

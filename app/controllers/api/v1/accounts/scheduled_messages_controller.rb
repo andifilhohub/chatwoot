@@ -11,7 +11,7 @@ class Api::V1::Accounts::ScheduledMessagesController < Api::V1::Accounts::BaseCo
                                     :sender,
                                     { conversation: :contact },
                                     { attachments: :blob })
-                          .order('messages.scheduled_at ASC')
+                          .reorder('messages.created_at DESC')
                           .page(@current_page)
                           .per(per_page)
   end
@@ -57,7 +57,8 @@ class Api::V1::Accounts::ScheduledMessagesController < Api::V1::Accounts::BaseCo
   end
 
   def filtered_scope
-    scope = Current.account.messages.scheduled_status
+    scope = Current.account.messages
+                   .where(status: [Message.statuses[:scheduled], Message.statuses[:sent]])
                    .where.not(scheduled_at: nil)
                    .left_outer_joins(:scheduled_message_job)
 

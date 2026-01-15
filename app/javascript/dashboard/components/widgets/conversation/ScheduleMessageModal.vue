@@ -25,6 +25,7 @@ const { t } = useI18n();
 
 const localDateTime = ref(null);
 const errorMessage = ref('');
+const isPickerOpen = ref(false);
 
 const resolvedTimezone = computed(
   () =>
@@ -33,6 +34,7 @@ const resolvedTimezone = computed(
 
 const initialize = () => {
   errorMessage.value = '';
+  isPickerOpen.value = false;
   if (props.scheduledAt) {
     const parsed = new Date(props.scheduledAt);
     localDateTime.value = Number.isNaN(parsed.getTime()) ? null : parsed;
@@ -91,6 +93,16 @@ const handleConfirm = () => {
   errorMessage.value = '';
 };
 
+const handlePickerChange = (_value, type) => {
+  if (type === 'time') {
+    isPickerOpen.value = false;
+  }
+};
+
+const handleInputClick = () => {
+  isPickerOpen.value = !isPickerOpen.value;
+};
+
 const handleClear = () => {
   emit('clear');
   errorMessage.value = '';
@@ -115,11 +127,14 @@ const canClear = computed(() => !!props.scheduledAt);
       <DatePicker
         v-model:value="localDateTime"
         type="datetime"
+        :open="isPickerOpen"
         :disabled-date="disablePastDates"
         :placeholder="$t('CONVERSATION.REPLYBOX.SCHEDULE.MODAL.PLACEHOLDER')"
         :editable="false"
         :clearable="false"
         input-class="w-full"
+        @click.stop="handleInputClick"
+        @change="handlePickerChange"
       />
       <p class="text-xs text-n-slate-11">
         {{ timezoneLabel }}

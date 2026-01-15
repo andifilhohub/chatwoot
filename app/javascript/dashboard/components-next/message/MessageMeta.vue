@@ -40,7 +40,8 @@ const readableTime = computed(() =>
 );
 
 const scheduledTimestamp = computed(() => {
-  const iso = scheduleInfo.value?.scheduledAt;
+  const iso =
+    scheduleInfo.value?.scheduledAt || scheduleInfo.value?.scheduled_at;
   if (!iso) return null;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
@@ -48,22 +49,17 @@ const scheduledTimestamp = computed(() => {
 });
 
 const dispatchedTimestamp = computed(() => {
-  const iso = scheduleInfo.value?.dispatchedAt;
+  const iso =
+    scheduleInfo.value?.dispatchedAt || scheduleInfo.value?.dispatched_at;
   if (!iso) return null;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
   return Math.floor(date.getTime() / 1000);
 });
 
-const scheduledTimezone = computed(() => scheduleInfo.value?.scheduledTimezone);
-
 const scheduledLabel = computed(() => {
   if (!scheduledTimestamp.value) return '';
-  const base = messageTimestamp(scheduledTimestamp.value, 'LLL d, h:mm a');
-  if (!scheduledTimezone.value) {
-    return base;
-  }
-  return `${base} (${scheduledTimezone.value})`;
+  return messageTimestamp(scheduledTimestamp.value, 'LLL d, h:mm a');
 });
 
 const dispatchedLabel = computed(() => {
@@ -172,8 +168,7 @@ const scheduleMetaText = computed(() => {
 
   if (dispatchedTimestamp.value) {
     return t('CONVERSATION.REPLYBOX.SCHEDULE.META_SENT', {
-      scheduledAt: scheduledLabel.value,
-      sentAt: dispatchedLabel.value,
+      datetime: dispatchedLabel.value || scheduledLabel.value,
     });
   }
 

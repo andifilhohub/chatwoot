@@ -282,13 +282,15 @@ const actions = {
       const response = hasMessageFailedWithExternalError(pendingMessage)
         ? await MessageApi.retry(conversationId, id)
         : await MessageApi.create(pendingMessage);
+      const responseMessage = response.data || {};
+      const messageStatus = responseMessage.status || MESSAGE_STATUS.SENT;
       commit(types.ADD_MESSAGE, {
-        ...response.data,
-        status: MESSAGE_STATUS.SENT,
+        ...responseMessage,
+        status: messageStatus,
       });
       commit(types.ADD_CONVERSATION_ATTACHMENTS, {
-        ...response.data,
-        status: MESSAGE_STATUS.SENT,
+        ...responseMessage,
+        status: messageStatus,
       });
     } catch (error) {
       const errorMessage = error.response

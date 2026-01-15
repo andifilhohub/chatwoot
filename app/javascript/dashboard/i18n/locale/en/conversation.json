@@ -223,7 +223,23 @@
       "DRAG_DROP": "Drag and drop here to attach",
       "START_AUDIO_RECORDING": "Start audio recording",
       "STOP_AUDIO_RECORDING": "Stop audio recording",
-      "": "",
+      "SCHEDULE": {
+        "BUTTON": "Schedule",
+        "CLEAR": "Clear schedule",
+        "META_PENDING": "Scheduled for {datetime}",
+        "META_SENT": "Sent on {datetime}",
+        "MODAL": {
+          "TITLE": "Schedule message",
+          "DESCRIPTION": "Choose when this message should be sent.",
+          "PLACEHOLDER": "Select date and time",
+          "TIMEZONE_LABEL": "Timezone",
+          "CANCEL": "Cancel",
+          "APPLY": "Schedule",
+          "CLEAR": "Clear",
+          "ERROR_REQUIRED": "Select a date and time to schedule.",
+          "ERROR_PAST": "Scheduled time must be in the future."
+        }
+      },
       "EMAIL_HEAD": {
         "TO": "TO",
         "ADD_BCC": "Add bcc",

@@ -353,8 +353,8 @@ export default {
         :color="isScheduleActive ? 'amber' : null"
         slate
         sm
-        justify="start"
-        class="max-w-[200px]"
+        :justify="scheduleLabel ? 'start' : 'center'"
+        :class="scheduleLabel ? 'max-w-[200px]' : ''"
         :label="scheduleLabel"
         :disabled="isOnPrivateNote"
         @click="onOpenSchedule"

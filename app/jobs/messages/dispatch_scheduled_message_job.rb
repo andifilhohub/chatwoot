@@ -11,7 +11,10 @@ module Messages
       schedule_record = message.scheduled_message_job
       return unless schedule_record
       return unless schedule_record.scheduled?
-      return if schedule_record.job_id.present? && schedule_record.job_id != job_id
+      current_job_id = provider_job_id || job_id
+      return if schedule_record.job_id.present? && schedule_record.job_id != current_job_id
+
+      return if reschedule_if_early(message, schedule_record)
 
       schedule_record.update!(status: ScheduledMessageJob.statuses[:processing], dispatched_at: Time.current)
 
@@ -32,13 +35,10 @@ module Messages
     def execute_delivery!(message)
       info = message.schedule_info.is_a?(Hash) ? message.schedule_info.deep_dup : {}
       info['dispatched_at'] = Time.current.iso8601
-      message.update!(schedule_info: info)
+      message.update_columns(schedule_info: info, updated_at: Time.current)
 
-      message.notify_via_mail
-      message.execute_message_template_hooks
-      message.conversation.update_columns(last_activity_at: Time.current)
-      message.send_reply
-      Messages::StatusUpdateService.new(message, 'sent').perform
+      message.send(:deliver_outgoing!, force_send: true)
+      message.update_columns(status: Message.statuses[:sent], updated_at: Time.current)
     end
 
     def delivery_service(message, schedule_record)
@@ -51,6 +51,14 @@ module Messages
         timezone: timezone,
         metadata: metadata
       )
+    end
+
+    def reschedule_if_early(message, schedule_record)
+      scheduled_at = schedule_record.scheduled_at || message.scheduled_at
+      return false if scheduled_at.blank? || scheduled_at <= Time.current
+
+      delivery_service(message, schedule_record).schedule!
+      true
     end
   end
 end

@@ -69,6 +69,7 @@ class Message < ApplicationRecord
   before_validation :prevent_message_flooding
   before_save :ensure_processed_message_content
   before_save :ensure_in_reply_to
+  before_validation :ensure_scheduled_status
 
   validates :account_id, presence: true
   validates :inbox_id, presence: true
@@ -320,16 +321,10 @@ class Message < ApplicationRecord
   def execute_after_create_commit_callbacks
     # rails issue with order of active record callbacks being executed https://github.com/rails/rails/issues/20911
     reopen_conversation
-    if scheduled?
-      dispatch_create_events
+    if scheduled_for_future?
       schedule_delivery
     else
-      notify_via_mail
-      set_conversation_activity
-      dispatch_create_events
-      send_reply
-      execute_message_template_hooks
-      update_contact_activity
+      deliver_outgoing!
     end
   end
 
@@ -357,6 +352,15 @@ class Message < ApplicationRecord
       sender.is_a?(User)
   end
 
+  def deliver_outgoing!(force_send: false)
+    notify_via_mail
+    set_conversation_activity
+    dispatch_create_events
+    send_reply(force: force_send)
+    execute_message_template_hooks
+    update_contact_activity
+  end
+
   def dispatch_create_events
     Rails.configuration.dispatcher.dispatch(MESSAGE_CREATED, Time.zone.now, message: self, performed_by: Current.executed_by)
 
@@ -376,7 +380,9 @@ class Message < ApplicationRecord
     send_update_event
   end
 
-  def send_reply
+  def send_reply(force: false)
+    return if scheduled_for_future? && !force
+
     # FIXME: Giving it few seconds for the attachment to be uploaded to the service
     # active storage attaches the file only after commit
     attachments.blank? ? ::SendReplyJob.perform_later(id) : ::SendReplyJob.set(wait: 2.seconds).perform_later(id)
@@ -392,6 +398,17 @@ class Message < ApplicationRecord
       timezone: info['scheduled_timezone'],
       metadata: info
     ).schedule!
+  end
+
+  def ensure_scheduled_status
+    return unless scheduled_for_future?
+    return if scheduled?
+
+    self.status = :scheduled
+  end
+
+  def scheduled_for_future?
+    scheduled_at.present? && scheduled_at > Time.current
   end
 
   def reopen_conversation
