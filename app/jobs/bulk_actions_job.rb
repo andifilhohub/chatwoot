@@ -26,7 +26,12 @@ class BulkActionsJob < ApplicationJob
     records.each do |conversation|
       bulk_add_labels(conversation)
       bulk_snoozed_until(conversation)
+      if params&.[](:status) == 'resolved'
+
+        params[:assignee_id] = nil
+      end
       conversation.update(params) if params
+      Rails.logger.info "Conversation #{conversation.inspect} updated with params #{params} by #{Current.user.name}" if params
     end
   end
 
