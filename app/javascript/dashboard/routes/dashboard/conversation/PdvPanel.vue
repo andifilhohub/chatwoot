@@ -305,7 +305,7 @@ const cartPanelStyle = computed(() => ({
           v-if="cartState === 'floating' && cart.length > 0"
           ref="cartPanelRef"
           :style="cartPanelStyle"
-          class="fixed z-40 w-[420px] max-h-[calc(100vh-200px)] bg-white dark:bg-n-solid-1 rounded-2xl shadow-2xl border border-n-weak flex flex-col overflow-hidden"
+          class="fixed z-40 w-[1040px] max-w-[95vw] min-w-[320px] sm:min-w-[360px] h-[70vh] max-h-[85vh] min-h-[360px] resize overflow-auto bg-white dark:bg-n-solid-1 rounded-2xl shadow-2xl border border-n-weak flex flex-col"
           :class="{ 'cursor-move': isDragging, 'select-none': isDragging }"
         >
           <!-- Header do carrinho flutuante (área de drag) -->

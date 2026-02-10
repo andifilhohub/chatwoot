@@ -1,34 +1,43 @@
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 
 import Button from 'dashboard/components-next/button/Button.vue';
 import DropdownMenu from 'dashboard/components-next/dropdown-menu/DropdownMenu.vue';
 
 const emit = defineEmits(['add', 'import', 'export']);
+const props = defineProps({
+  canExportContacts: { type: Boolean, default: true },
+});
 
 const { t } = useI18n();
 
-const contactMenuItems = [
-  {
-    label: t('CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.ADD_CONTACT'),
-    action: 'add',
-    value: 'add',
-    icon: 'i-lucide-plus',
-  },
-  {
-    label: t('CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.EXPORT_CONTACT'),
-    action: 'export',
-    value: 'export',
-    icon: 'i-lucide-upload',
-  },
-  {
-    label: t('CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.IMPORT_CONTACT'),
-    action: 'import',
-    value: 'import',
-    icon: 'i-lucide-download',
-  },
-];
+const contactMenuItems = computed(() => {
+  const items = [
+    {
+      label: t('CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.ADD_CONTACT'),
+      action: 'add',
+      value: 'add',
+      icon: 'i-lucide-plus',
+    },
+    {
+      label: t('CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.EXPORT_CONTACT'),
+      action: 'export',
+      value: 'export',
+      icon: 'i-lucide-upload',
+    },
+    {
+      label: t('CONTACTS_LAYOUT.HEADER.ACTIONS.CONTACT_CREATION.IMPORT_CONTACT'),
+      action: 'import',
+      value: 'import',
+      icon: 'i-lucide-download',
+    },
+  ];
+
+  return props.canExportContacts
+    ? items
+    : items.filter(item => item.action !== 'export');
+});
 const showActionsDropdown = ref(false);
 
 const handleContactAction = ({ action }) => {

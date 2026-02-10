@@ -329,6 +329,7 @@
     "SMS": "SMS",
     "WHATSAPP": "WhatsApp",
     "CAMPAIGNS": "Campanhas",
+    "SCHEDULED_MESSAGES": "Mensagens agendadas",
     "ONGOING": "Em andamento",
     "ONE_OFF": "Única",
     "REPORTS_SLA": "SLA",

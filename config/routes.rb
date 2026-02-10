@@ -207,6 +207,7 @@ Rails.application.routes.draw do
             post :sync_templates, on: :member
           end
           resources :integrahub_products, only: [:index]
+          resources :integrahub_sales, only: [:create]
           resources :inbox_members, only: [:create, :show], param: :inbox_id do
             collection do
               delete :destroy

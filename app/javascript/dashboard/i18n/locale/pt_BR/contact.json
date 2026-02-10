@@ -6,6 +6,12 @@
     "IDENTIFIER": "Identificador",
     "COPY_SUCCESSFUL": "Copiado para área de transferência com sucesso",
     "COMPANY": "Empresa",
+    "ADDRESS_LINE": "Endereço",
+    "ADDRESS_NEIGHBORHOOD": "Bairro",
+    "ADDRESS_STATE": "Estado",
+    "ADDRESS_ZIP": "CEP",
+    "ADDRESS_REFERENCE": "Referência",
+    "ADDRESS_RECIPIENT": "Destinatário",
     "LOCATION": "Localização",
     "BROWSER_LANGUAGE": "Idioma do navegador",
     "CONVERSATION_TITLE": "Detalhes da conversa",
@@ -113,6 +119,38 @@
       "COMPANY_NAME": {
         "PLACEHOLDER": "Digite o nome da empresa",
         "LABEL": "Nome da empresa"
+      },
+      "ADDRESS_LINE": {
+        "PLACEHOLDER": "Digite o logradouro",
+        "LABEL": "Endereço"
+      },
+      "ADDRESS_NUMBER": {
+        "PLACEHOLDER": "Digite o número",
+        "LABEL": "Número"
+      },
+      "ADDRESS_COMPLEMENT": {
+        "PLACEHOLDER": "Digite o complemento",
+        "LABEL": "Complemento"
+      },
+      "ADDRESS_NEIGHBORHOOD": {
+        "PLACEHOLDER": "Digite o bairro",
+        "LABEL": "Bairro"
+      },
+      "ADDRESS_ZIP": {
+        "PLACEHOLDER": "Digite o CEP",
+        "LABEL": "CEP"
+      },
+      "ADDRESS_STATE": {
+        "PLACEHOLDER": "Digite o estado",
+        "LABEL": "Estado"
+      },
+      "ADDRESS_REFERENCE": {
+        "PLACEHOLDER": "Digite a referência",
+        "LABEL": "Referência"
+      },
+      "ADDRESS_RECIPIENT": {
+        "PLACEHOLDER": "Digite o nome do destinatário",
+        "LABEL": "Destinatário"
       },
       "COUNTRY": {
         "PLACEHOLDER": "Digite o nome do país ",
@@ -427,8 +465,32 @@
             "PLACEHOLDER": "Digite o número de telefone",
             "DUPLICATE": "Este número de telefone está em uso para outro contato."
           },
+          "ADDRESS_LINE": {
+            "PLACEHOLDER": "Digite o logradouro"
+          },
+          "ADDRESS_NUMBER": {
+            "PLACEHOLDER": "Digite o número"
+          },
+          "ADDRESS_COMPLEMENT": {
+            "PLACEHOLDER": "Digite o complemento"
+          },
+          "ADDRESS_NEIGHBORHOOD": {
+            "PLACEHOLDER": "Digite o bairro"
+          },
+          "ADDRESS_ZIP": {
+            "PLACEHOLDER": "Digite o CEP"
+          },
           "CITY": {
             "PLACEHOLDER": "Digite o nome da cidade"
+          },
+          "ADDRESS_STATE": {
+            "PLACEHOLDER": "Digite o estado"
+          },
+          "ADDRESS_REFERENCE": {
+            "PLACEHOLDER": "Digite a referência"
+          },
+          "ADDRESS_RECIPIENT": {
+            "PLACEHOLDER": "Digite o nome do destinatário"
           },
           "COUNTRY": {
             "PLACEHOLDER": "Selecione o país"

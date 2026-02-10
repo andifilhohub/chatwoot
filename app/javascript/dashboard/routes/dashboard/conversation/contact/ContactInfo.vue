@@ -63,6 +63,33 @@ export default {
     additionalAttributes() {
       return this.contact.additional_attributes || {};
     },
+    addressLine() {
+      const {
+        address_line: line = '',
+        address_number: number = '',
+        address_complement: complement = '',
+      } = this.additionalAttributes;
+
+      return [line, number, complement].filter(Boolean).join(', ');
+    },
+    addressNeighborhood() {
+      return this.additionalAttributes.address_neighborhood || '';
+    },
+    addressZip() {
+      return this.additionalAttributes.address_zip || '';
+    },
+    addressState() {
+      return this.additionalAttributes.address_state || '';
+    },
+    addressReference() {
+      return this.additionalAttributes.address_reference || '';
+    },
+    addressRecipient() {
+      return this.additionalAttributes.address_recipient || '';
+    },
+    cpf() {
+      return this.additionalAttributes.cpf || '';
+    },
     location() {
       const {
         country = '',
@@ -252,6 +279,57 @@ export default {
             icon="building-bank"
             emoji="🏢"
             :title="$t('CONTACT_PANEL.COMPANY')"
+          />
+          <ContactInfoRow
+            v-if="cpf"
+            :value="cpf"
+            icon="badge"
+            emoji="🪪"
+            :title="$t('CONTACT_PANEL.CPF')"
+            show-copy
+          />
+          <ContactInfoRow
+            v-if="addressLine"
+            :value="addressLine"
+            icon="map-pin"
+            emoji="📍"
+            :title="$t('CONTACT_PANEL.ADDRESS_LINE')"
+          />
+          <ContactInfoRow
+            v-if="addressNeighborhood"
+            :value="addressNeighborhood"
+            icon="map"
+            emoji="🧭"
+            :title="$t('CONTACT_PANEL.ADDRESS_NEIGHBORHOOD')"
+          />
+          <ContactInfoRow
+            v-if="addressState"
+            :value="addressState"
+            icon="map"
+            emoji="🗺️"
+            :title="$t('CONTACT_PANEL.ADDRESS_STATE')"
+          />
+          <ContactInfoRow
+            v-if="addressZip"
+            :value="addressZip"
+            icon="hash"
+            emoji="🏷️"
+            :title="$t('CONTACT_PANEL.ADDRESS_ZIP')"
+            show-copy
+          />
+          <ContactInfoRow
+            v-if="addressReference"
+            :value="addressReference"
+            icon="info"
+            emoji="📝"
+            :title="$t('CONTACT_PANEL.ADDRESS_REFERENCE')"
+          />
+          <ContactInfoRow
+            v-if="addressRecipient"
+            :value="addressRecipient"
+            icon="user"
+            emoji="👤"
+            :title="$t('CONTACT_PANEL.ADDRESS_RECIPIENT')"
           />
           <ContactInfoRow
             v-if="location || additionalAttributes.location"

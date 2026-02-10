@@ -17,6 +17,7 @@ defineProps({
   hasActiveFilters: { type: Boolean, default: false },
   isLabelView: { type: Boolean, default: false },
   isActiveView: { type: Boolean, default: false },
+  canExportContacts: { type: Boolean, default: true },
 });
 
 const emit = defineEmits([
@@ -107,6 +108,7 @@ const emit = defineEmits([
               @update:sort="emit('update:sort', $event)"
             />
             <ContactMoreActions
+              :can-export-contacts="canExportContacts"
               @add="emit('add')"
               @import="emit('import')"
               @export="emit('export')"

@@ -50,6 +50,8 @@ const { t } = useI18n();
 const store = useStore();
 const router = useRouter();
 
+const currentRole = useMapGetter('getCurrentRole');
+
 const createNewContactDialogRef = ref(null);
 const contactExportDialogRef = ref(null);
 const contactImportDialogRef = ref(null);
@@ -67,6 +69,7 @@ const hasActiveSegments = computed(
   () => props.activeSegment && props.segmentsId !== 0
 );
 const activeSegmentName = computed(() => props.activeSegment?.name);
+const canExportContacts = computed(() => currentRole.value !== 'agent');
 
 const openCreateNewContactDialog = async () => {
   await createNewContactDialogRef.value?.contactsFormRef.resetValidation();
@@ -75,7 +78,9 @@ const openCreateNewContactDialog = async () => {
 const openContactImportDialog = () =>
   contactImportDialogRef.value?.dialogRef.open();
 const openContactExportDialog = () =>
-  contactExportDialogRef.value?.dialogRef.open();
+  canExportContacts.value
+    ? contactExportDialogRef.value?.dialogRef.open()
+    : null;
 const openCreateSegmentDialog = () =>
   createSegmentDialogRef.value?.dialogRef.open();
 const openDeleteSegmentDialog = () =>
@@ -283,6 +288,7 @@ defineExpose({
     :is-active-view="isActiveView"
     :has-active-filters="hasAppliedFilters"
     :button-label="t('CONTACTS_LAYOUT.HEADER.MESSAGE_BUTTON')"
+    :can-export-contacts="canExportContacts"
     @search="emit('search', $event)"
     @update:sort="emit('update:sort', $event)"
     @add="openCreateNewContactDialog"

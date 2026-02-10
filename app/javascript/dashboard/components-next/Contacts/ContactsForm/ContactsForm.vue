@@ -29,16 +29,24 @@ const emit = defineEmits(['update']);
 
 const { t } = useI18n();
 
-const FORM_CONFIG = {
-  FIRST_NAME: { field: 'firstName' },
-  LAST_NAME: { field: 'lastName' },
-  EMAIL_ADDRESS: { field: 'email' },
-  PHONE_NUMBER: { field: 'phoneNumber' },
-  CITY: { field: 'additionalAttributes.city' },
-  COUNTRY: { field: 'additionalAttributes.countryCode' },
-  BIO: { field: 'additionalAttributes.description' },
-  COMPANY_NAME: { field: 'additionalAttributes.companyName' },
-};
+  const FORM_CONFIG = {
+    FIRST_NAME: { field: 'firstName' },
+    LAST_NAME: { field: 'lastName' },
+    EMAIL_ADDRESS: { field: 'email' },
+    PHONE_NUMBER: { field: 'phoneNumber' },
+    ADDRESS_LINE: { field: 'additionalAttributes.addressLine' },
+    ADDRESS_NUMBER: { field: 'additionalAttributes.addressNumber' },
+    ADDRESS_COMPLEMENT: { field: 'additionalAttributes.addressComplement' },
+    ADDRESS_NEIGHBORHOOD: { field: 'additionalAttributes.addressNeighborhood' },
+    ADDRESS_ZIP: { field: 'additionalAttributes.addressZip' },
+    CITY: { field: 'additionalAttributes.city' },
+    ADDRESS_STATE: { field: 'additionalAttributes.addressState' },
+    ADDRESS_REFERENCE: { field: 'additionalAttributes.addressReference' },
+    ADDRESS_RECIPIENT: { field: 'additionalAttributes.addressRecipient' },
+    COUNTRY: { field: 'additionalAttributes.countryCode' },
+    BIO: { field: 'additionalAttributes.description' },
+    COMPANY_NAME: { field: 'additionalAttributes.companyName' },
+  };
 
 const SOCIAL_CONFIG = {
   LINKEDIN: 'i-ri-linkedin-box-fill',
@@ -61,6 +69,14 @@ const defaultState = {
     countryCode: '',
     country: '',
     city: '',
+    addressLine: '',
+    addressNumber: '',
+    addressComplement: '',
+    addressNeighborhood: '',
+    addressZip: '',
+    addressState: '',
+    addressReference: '',
+    addressRecipient: '',
     socialProfiles: {
       facebook: '',
       github: '',
@@ -101,6 +117,14 @@ const prepareStateBasedOnProps = () => {
     countryCode = '',
     country = '',
     city = '',
+    addressLine = '',
+    addressNumber = '',
+    addressComplement = '',
+    addressNeighborhood = '',
+    addressZip = '',
+    addressState = '',
+    addressReference = '',
+    addressRecipient = '',
     socialProfiles = {},
   } = additionalAttributes || {};
 
@@ -117,6 +141,14 @@ const prepareStateBasedOnProps = () => {
       countryCode,
       country,
       city,
+      addressLine,
+      addressNumber,
+      addressComplement,
+      addressNeighborhood,
+      addressZip,
+      addressState,
+      addressReference,
+      addressRecipient,
       socialProfiles,
     },
   });

@@ -205,6 +205,23 @@
       "DRAG_DROP": "Arraste e solte aqui para anexar",
       "START_AUDIO_RECORDING": "Iniciar gravação de áudio",
       "STOP_AUDIO_RECORDING": "Parar gravação de áudio",
+      "SCHEDULE": {
+        "BUTTON": "Agendar",
+        "CLEAR": "Limpar agendamento",
+        "META_PENDING": "Agendado para {datetime}",
+        "META_SENT": "Enviado em {datetime}",
+        "MODAL": {
+          "TITLE": "Agendar mensagem",
+          "DESCRIPTION": "Escolha quando esta mensagem deve ser enviada.",
+          "PLACEHOLDER": "Selecione data e hora",
+          "TIMEZONE_LABEL": "Fuso horário",
+          "CANCEL": "Cancelar",
+          "APPLY": "Agendar",
+          "CLEAR": "Limpar",
+          "ERROR_REQUIRED": "Selecione uma data e hora para agendar.",
+          "ERROR_PAST": "O horário agendado deve estar no futuro."
+        }
+      },
       "": "",
       "EMAIL_HEAD": {
         "TO": "Para",

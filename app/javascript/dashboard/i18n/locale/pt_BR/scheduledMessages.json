@@ -1,0 +1,71 @@
+{
+  "SCHEDULED_MESSAGES": {
+    "TITLE": "Mensagens agendadas",
+    "DESCRIPTION": "Gerencie mensagens programadas para envio posterior. Atualize a mensagem ou cancele antes de ser enviada.",
+    "STATUS": {
+      "SCHEDULED": "Agendada",
+      "PROCESSING": "Processando",
+      "SENT": "Enviada",
+      "CANCELLED": "Cancelada",
+      "FAILED": "Falhou"
+    },
+    "TABLE": {
+      "CONTENT": "Conteúdo",
+      "CONTACT": "Contato",
+      "AGENT": "Agendado por",
+      "INBOX": "Caixa de entrada",
+      "SCHEDULED_FOR": "Agendado para",
+      "STATUS": "Status",
+      "ATTACHMENTS": "Anexos",
+      "CREATED_AT": "Criado em",
+      "RECURRENCE": "Recorrência",
+      "ACTIONS": "Ações"
+    },
+    "FILTERS": {
+      "SEARCH_PLACEHOLDER": "Pesquisar mensagens...",
+      "STATUS": "Status",
+      "AGENT": "Agendado por",
+      "INBOX": "Caixa de entrada",
+      "SCHEDULED_FROM": "Agendado a partir de",
+      "SCHEDULED_TO": "Agendado até",
+      "CREATED_FROM": "Criado a partir de",
+      "CREATED_TO": "Criado até",
+      "SHOW_PANEL": "Filtros",
+      "HIDE_PANEL": "Ocultar filtros",
+      "APPLY": "Aplicar filtros",
+      "RESET": "Limpar filtros"
+    },
+    "FILTERS_TITLE": "Filtrar mensagens agendadas",
+    "FILTERS_SUBTITLE": "Use os controles abaixo para refinar a lista.",
+    "EMPTY": {
+      "TITLE": "Nenhuma mensagem agendada ainda",
+      "DESCRIPTION": "Agende uma resposta em qualquer conversa para vê-la aqui."
+    },
+    "ACTIONS": {
+      "VIEW": "Ver conversa",
+      "EDIT": "Editar",
+      "DELETE": "Cancelar"
+    },
+    "ALL_STATUSES": "Todos os status",
+    "CONFIRM_DELETE": "Cancelar esta mensagem agendada?",
+    "SUCCESS": {
+      "UPDATE": "Mensagem agendada atualizada.",
+      "DELETE": "Mensagem agendada cancelada."
+    },
+    "ERRORS": {
+      "FETCH": "Não foi possível carregar mensagens agendadas.",
+      "UPDATE": "Não foi possível atualizar a mensagem agendada.",
+      "DELETE": "Não foi possível cancelar a mensagem agendada."
+    },
+    "EDIT_MODAL": {
+      "TITLE": "Editar mensagem agendada",
+      "CONTENT_LABEL": "Mensagem",
+      "HELP_ATTACHMENTS": "Os anexos permanecem inalterados ao editar por aqui.",
+      "SCHEDULE_LABEL": "Enviar em",
+      "CANCEL": "Cancelar",
+      "SAVE": "Salvar alterações",
+      "ERROR_PAST": "Escolha um horário no futuro.",
+      "ERROR_REQUIRED": "Selecione data e hora antes de salvar."
+    }
+  }
+}

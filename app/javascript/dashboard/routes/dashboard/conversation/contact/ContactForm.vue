@@ -39,10 +39,19 @@ export default {
     return {
       countries: countries,
       companyName: '',
+      cpf: '',
       description: '',
       email: '',
       name: '',
       phoneNumber: '',
+      addressLine: '',
+      addressNumber: '',
+      addressComplement: '',
+      addressNeighborhood: '',
+      addressZip: '',
+      addressState: '',
+      addressReference: '',
+      addressRecipient: '',
       activeDialCode: '',
       avatarFile: null,
       avatarUrl: '',
@@ -154,6 +163,15 @@ export default {
       this.email = emailAddress || '';
       this.phoneNumber = phoneNumber || '';
       this.companyName = additionalAttributes.company_name || '';
+      this.cpf = additionalAttributes.cpf || '';
+      this.addressLine = additionalAttributes.address_line || '';
+      this.addressNumber = additionalAttributes.address_number || '';
+      this.addressComplement = additionalAttributes.address_complement || '';
+      this.addressNeighborhood = additionalAttributes.address_neighborhood || '';
+      this.addressZip = additionalAttributes.address_zip || '';
+      this.addressState = additionalAttributes.address_state || '';
+      this.addressReference = additionalAttributes.address_reference || '';
+      this.addressRecipient = additionalAttributes.address_recipient || '';
       this.country = {
         id: additionalAttributes.country_code || '',
         name:
@@ -191,6 +209,15 @@ export default {
           ...this.contact.additional_attributes,
           description: this.description,
           company_name: this.companyName,
+          cpf: this.cpf,
+          address_line: this.addressLine,
+          address_number: this.addressNumber,
+          address_complement: this.addressComplement,
+          address_neighborhood: this.addressNeighborhood,
+          address_zip: this.addressZip,
+          address_state: this.addressState,
+          address_reference: this.addressReference,
+          address_recipient: this.addressRecipient,
           country_code: this.country.id,
           country:
             this.country.name ===
@@ -360,6 +387,66 @@ export default {
       class="w-full"
       :label="$t('CONTACT_FORM.FORM.COMPANY_NAME.LABEL')"
       :placeholder="$t('CONTACT_FORM.FORM.COMPANY_NAME.PLACEHOLDER')"
+    />
+    <woot-input
+      v-model="cpf"
+      class="w-full"
+      :label="$t('CONTACT_FORM.FORM.CPF.LABEL')"
+      :placeholder="$t('CONTACT_FORM.FORM.CPF.PLACEHOLDER')"
+    />
+    <woot-input
+      v-model="addressLine"
+      class="w-full"
+      :label="$t('CONTACT_FORM.FORM.ADDRESS_LINE.LABEL')"
+      :placeholder="$t('CONTACT_FORM.FORM.ADDRESS_LINE.PLACEHOLDER')"
+    />
+    <div class="grid grid-cols-2 gap-4 w-full">
+      <woot-input
+        v-model="addressNumber"
+        class="w-full"
+        :label="$t('CONTACT_FORM.FORM.ADDRESS_NUMBER.LABEL')"
+        :placeholder="$t('CONTACT_FORM.FORM.ADDRESS_NUMBER.PLACEHOLDER')"
+      />
+      <woot-input
+        v-model="addressComplement"
+        class="w-full"
+        :label="$t('CONTACT_FORM.FORM.ADDRESS_COMPLEMENT.LABEL')"
+        :placeholder="$t('CONTACT_FORM.FORM.ADDRESS_COMPLEMENT.PLACEHOLDER')"
+      />
+    </div>
+    <div class="grid grid-cols-2 gap-4 w-full">
+      <woot-input
+        v-model="addressNeighborhood"
+        class="w-full"
+        :label="$t('CONTACT_FORM.FORM.ADDRESS_NEIGHBORHOOD.LABEL')"
+        :placeholder="$t('CONTACT_FORM.FORM.ADDRESS_NEIGHBORHOOD.PLACEHOLDER')"
+      />
+      <woot-input
+        v-model="addressZip"
+        class="w-full"
+        :label="$t('CONTACT_FORM.FORM.ADDRESS_ZIP.LABEL')"
+        :placeholder="$t('CONTACT_FORM.FORM.ADDRESS_ZIP.PLACEHOLDER')"
+      />
+    </div>
+    <div class="grid grid-cols-2 gap-4 w-full">
+      <woot-input
+        v-model="addressState"
+        class="w-full"
+        :label="$t('CONTACT_FORM.FORM.ADDRESS_STATE.LABEL')"
+        :placeholder="$t('CONTACT_FORM.FORM.ADDRESS_STATE.PLACEHOLDER')"
+      />
+      <woot-input
+        v-model="addressReference"
+        class="w-full"
+        :label="$t('CONTACT_FORM.FORM.ADDRESS_REFERENCE.LABEL')"
+        :placeholder="$t('CONTACT_FORM.FORM.ADDRESS_REFERENCE.PLACEHOLDER')"
+      />
+    </div>
+    <woot-input
+      v-model="addressRecipient"
+      class="w-full"
+      :label="$t('CONTACT_FORM.FORM.ADDRESS_RECIPIENT.LABEL')"
+      :placeholder="$t('CONTACT_FORM.FORM.ADDRESS_RECIPIENT.PLACEHOLDER')"
     />
     <div>
       <div class="w-full">

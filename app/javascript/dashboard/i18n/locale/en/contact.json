@@ -6,6 +6,13 @@
     "IDENTIFIER": "Identifier",
     "COPY_SUCCESSFUL": "Copied to clipboard successfully",
     "COMPANY": "Company",
+    "CPF": "CPF",
+    "ADDRESS_LINE": "Address",
+    "ADDRESS_NEIGHBORHOOD": "Neighborhood",
+    "ADDRESS_STATE": "State",
+    "ADDRESS_ZIP": "ZIP Code",
+    "ADDRESS_REFERENCE": "Reference",
+    "ADDRESS_RECIPIENT": "Recipient",
     "LOCATION": "Location",
     "BROWSER_LANGUAGE": "Browser Language",
     "CONVERSATION_TITLE": "Conversation Details",
@@ -113,6 +120,42 @@
       "COMPANY_NAME": {
         "PLACEHOLDER": "Enter the company name",
         "LABEL": "Company Name"
+      },
+      "CPF": {
+        "PLACEHOLDER": "Enter the CPF",
+        "LABEL": "CPF"
+      },
+      "ADDRESS_LINE": {
+        "PLACEHOLDER": "Enter the street",
+        "LABEL": "Address"
+      },
+      "ADDRESS_NUMBER": {
+        "PLACEHOLDER": "Enter the number",
+        "LABEL": "Number"
+      },
+      "ADDRESS_COMPLEMENT": {
+        "PLACEHOLDER": "Enter the complement",
+        "LABEL": "Complement"
+      },
+      "ADDRESS_NEIGHBORHOOD": {
+        "PLACEHOLDER": "Enter the neighborhood",
+        "LABEL": "Neighborhood"
+      },
+      "ADDRESS_ZIP": {
+        "PLACEHOLDER": "Enter the ZIP code",
+        "LABEL": "ZIP Code"
+      },
+      "ADDRESS_STATE": {
+        "PLACEHOLDER": "Enter the state",
+        "LABEL": "State"
+      },
+      "ADDRESS_REFERENCE": {
+        "PLACEHOLDER": "Enter the reference",
+        "LABEL": "Reference"
+      },
+      "ADDRESS_RECIPIENT": {
+        "PLACEHOLDER": "Enter the recipient name",
+        "LABEL": "Recipient"
       },
       "COUNTRY": {
         "PLACEHOLDER": "Enter the country name",
@@ -428,8 +471,32 @@
             "PLACEHOLDER": "Enter the phone number",
             "DUPLICATE": "This phone number is in use for another contact."
           },
+          "ADDRESS_LINE": {
+            "PLACEHOLDER": "Enter the street"
+          },
+          "ADDRESS_NUMBER": {
+            "PLACEHOLDER": "Enter the number"
+          },
+          "ADDRESS_COMPLEMENT": {
+            "PLACEHOLDER": "Enter the complement"
+          },
+          "ADDRESS_NEIGHBORHOOD": {
+            "PLACEHOLDER": "Enter the neighborhood"
+          },
+          "ADDRESS_ZIP": {
+            "PLACEHOLDER": "Enter the ZIP code"
+          },
           "CITY": {
             "PLACEHOLDER": "Enter the city name"
+          },
+          "ADDRESS_STATE": {
+            "PLACEHOLDER": "Enter the state"
+          },
+          "ADDRESS_REFERENCE": {
+            "PLACEHOLDER": "Enter the reference"
+          },
+          "ADDRESS_RECIPIENT": {
+            "PLACEHOLDER": "Enter the recipient name"
           },
           "COUNTRY": {
             "PLACEHOLDER": "Select country"
