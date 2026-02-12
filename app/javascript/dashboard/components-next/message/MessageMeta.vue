@@ -57,6 +57,15 @@ const dispatchedTimestamp = computed(() => {
   return Math.floor(date.getTime() / 1000);
 });
 
+const cancelledTimestamp = computed(() => {
+  const iso =
+    scheduleInfo.value?.cancelledAt || scheduleInfo.value?.cancelled_at;
+  if (!iso) return null;
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return null;
+  return Math.floor(date.getTime() / 1000);
+});
+
 const scheduledLabel = computed(() => {
   if (!scheduledTimestamp.value) return '';
   return messageTimestamp(scheduledTimestamp.value, 'LLL d, h:mm a');
@@ -65,6 +74,11 @@ const scheduledLabel = computed(() => {
 const dispatchedLabel = computed(() => {
   if (!dispatchedTimestamp.value) return '';
   return messageTimestamp(dispatchedTimestamp.value, 'LLL d, h:mm a');
+});
+
+const cancelledLabel = computed(() => {
+  if (!cancelledTimestamp.value) return '';
+  return messageTimestamp(cancelledTimestamp.value, 'LLL d, h:mm a');
 });
 
 const showStatusIndicator = computed(() => {
@@ -157,6 +171,11 @@ const shouldShowScheduleMeta = computed(() => !!scheduledTimestamp.value);
 
 const scheduleMetaText = computed(() => {
   if (!scheduledTimestamp.value) return '';
+  if (cancelledTimestamp.value) {
+    return t('CONVERSATION.REPLYBOX.SCHEDULE.META_CANCELLED', {
+      datetime: cancelledLabel.value || scheduledLabel.value,
+    });
+  }
   if (
     status.value === MESSAGE_STATUS.SCHEDULED ||
     (!dispatchedTimestamp.value && status.value === MESSAGE_STATUS.PROGRESS)
@@ -179,6 +198,9 @@ const scheduleMetaText = computed(() => {
 
 const scheduleMetaColorClass = computed(() => {
   if (!scheduledTimestamp.value) return '';
+  if (cancelledTimestamp.value) {
+    return 'text-n-slate-11';
+  }
   if (status.value === MESSAGE_STATUS.SCHEDULED) {
     return 'text-n-amber-11';
   }

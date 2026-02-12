@@ -1,9 +1,9 @@
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, unref, onUnmounted, watch } from 'vue';
 import { createConsumer } from '@rails/actioncable';
 import { useStore } from 'vuex';
 import internalChatAPI from '../api/internalChat';
 
-export default function useInternalChatData() {
+export default function useInternalChatData(isEnabled = ref(true)) {
   const store = useStore();
 
   // Estado reativo
@@ -22,10 +22,12 @@ export default function useInternalChatData() {
   let ownsConsumer = false;
   let reconnectTimer = null;
   let subscriptionKey = null;
+  let isManualDisconnect = false;
 
   // Getters do store
   const currentUser = computed(() => store.getters.getCurrentUser);
   const currentAccountId = computed(() => store.getters.getCurrentAccountId);
+  const isChatEnabled = computed(() => !!unref(isEnabled));
 
   // Carregar salas de chat
   const loadRooms = async () => {
@@ -132,6 +134,10 @@ export default function useInternalChatData() {
   };
 
   const scheduleReconnect = () => {
+    if (!isChatEnabled.value) {
+      return;
+    }
+
     if (reconnectTimer) {
       return;
     }
@@ -143,6 +149,10 @@ export default function useInternalChatData() {
   };
 
   const ensureSubscription = (force = false) => {
+    if (!isChatEnabled.value) {
+      return;
+    }
+
     const accountId = currentAccountId.value;
     if (!accountId) {
       return;
@@ -201,8 +211,9 @@ export default function useInternalChatData() {
       disconnected() {
         console.debug('❌ Internal chat cable disconnected');
         isConnected.value = false;
-        subscription = null;
-        subscriptionKey = null;
+        if (isManualDisconnect || !isChatEnabled.value) {
+          return;
+        }
         scheduleReconnect();
       },
 
@@ -402,6 +413,7 @@ export default function useInternalChatData() {
 
   // Desconectar do ActionCable
   const disconnect = () => {
+    isManualDisconnect = true;
     if (subscription) {
       subscription.unsubscribe();
       subscription = null;
@@ -417,17 +429,25 @@ export default function useInternalChatData() {
       reconnectTimer = null;
     }
     subscriptionKey = null;
+    isManualDisconnect = false;
   };
 
-  // Lifecycle
-  onMounted(() => {
-    loadRooms();
-  });
-
   watch(
-    [currentUser, currentAccountId],
-    ([user, account]) => {
+    [currentUser, currentAccountId, isChatEnabled],
+    ([user, account, enabled], [prevUser, prevAccount, prevEnabled]) => {
+      if (!enabled) {
+        disconnect();
+        return;
+      }
+
+      const wasDisabled = prevEnabled === false;
+      const userChanged = user?.id !== prevUser?.id;
+      const accountChanged = account !== prevAccount;
+
       if (user && account) {
+        if (wasDisabled || userChanged || accountChanged) {
+          loadRooms();
+        }
         ensureSubscription();
       } else {
         disconnect();

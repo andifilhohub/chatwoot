@@ -104,10 +104,7 @@ export const mergeInboxDetails = (inboxesData, inboxesList = []) => {
   });
 };
 
-export const prepareAttachmentPayload = (
-  attachedFiles,
-  _directUploadsEnabled
-) => {
+export const prepareAttachmentPayload = attachedFiles => {
   const files = [];
   attachedFiles.forEach(attachment => {
     const fileReference = attachment.blobSignedId || attachment?.resource?.file;
@@ -129,6 +126,9 @@ export const prepareNewMessagePayload = ({
   currentUser,
   attachedFiles = [],
   directUploadsEnabled = false,
+  scheduledAt,
+  scheduledTimezone,
+  scheduleInfo,
 }) => {
   const payload = {
     inboxId: targetInbox.id,
@@ -137,6 +137,21 @@ export const prepareNewMessagePayload = ({
     message: { content: message },
     assigneeId: currentUser.id,
   };
+
+  if (scheduledAt) {
+    payload.message.scheduled_at = scheduledAt;
+  }
+
+  if (scheduledTimezone) {
+    payload.message.scheduled_timezone = scheduledTimezone;
+  }
+
+  if (scheduleInfo) {
+    payload.message.schedule_info = {
+      scheduled_at: scheduleInfo.scheduledAt || scheduledAt,
+      scheduled_timezone: scheduleInfo.scheduledTimezone || scheduledTimezone,
+    };
+  }
 
   if (attachedFiles?.length) {
     payload.files = prepareAttachmentPayload(

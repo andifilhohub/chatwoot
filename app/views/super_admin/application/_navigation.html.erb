@@ -17,6 +17,7 @@ as defined by the routes in the `admin/` namespace
     platform_apps: 'icon-apps-2-line',
     agent_bots: 'icon-robot-line',
   }
+  pdv_enabled = ActiveModel::Type::Boolean.new.cast(GlobalConfigService.load('ENABLE_PDV', 'true'))
 %>
 
 <div class="border-slate-100 border-r w-56 flex-shrink-0 justify-between h-full flex flex-col" role="navigation">
@@ -41,6 +42,15 @@ as defined by the routes in the `admin/` namespace
         %>
 
       <% end %>
+      <li class="px-4 mb-1">
+        <%= form_with url: super_admin_app_config_url(config: 'pdv'), method: :post, local: true do |form| %>
+          <%= hidden_field_tag 'app_config[ENABLE_PDV]', (!pdv_enabled).to_s %>
+          <button type="submit" class="-ml-1 focus:outline-none flex items-center px-2 py-1.5 rounded-lg w-full <%= pdv_enabled ? 'text-emerald-700 bg-emerald-50 hover:bg-emerald-100' : 'text-amber-700 bg-amber-50 hover:bg-amber-100' %>">
+            <svg width="16" height="16"><use xlink:href="#icon-apps-2-line" /></svg>
+            <span class="ml-2 text-sm"><%= pdv_enabled ? 'Disable PDV' : 'Enable PDV' %></span>
+          </button>
+        <% end %>
+      </li>
       <%= render 'settings_menu', open: settings_open? %>
     </ul>
   </div>

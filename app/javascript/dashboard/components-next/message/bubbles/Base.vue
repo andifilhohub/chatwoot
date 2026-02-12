@@ -68,11 +68,21 @@ const scheduledAt = computed(
   () => scheduleInfo?.value?.scheduledAt || scheduleInfo?.value?.scheduled_at
 );
 
+const cancelledAt = computed(
+  () => scheduleInfo?.value?.cancelledAt || scheduleInfo?.value?.cancelled_at
+);
+
+const isScheduledCancelled = computed(() => !!cancelledAt.value);
+
 const isScheduledPending = computed(
-  () => status.value === MESSAGE_STATUS.SCHEDULED && scheduledAt.value
+  () =>
+    !isScheduledCancelled.value &&
+    status.value === MESSAGE_STATUS.SCHEDULED &&
+    scheduledAt.value
 );
 
 const isScheduledCompleted = computed(() => {
+  if (isScheduledCancelled.value) return false;
   if (!scheduledAt.value) return false;
   return [
     MESSAGE_STATUS.SENT,
@@ -82,6 +92,13 @@ const isScheduledCompleted = computed(() => {
 });
 
 const messageClass = computed(() => {
+  if (isScheduledCancelled.value) {
+    return [
+      'bg-n-slate-3 text-n-slate-11 border border-n-slate-6',
+      ...baseOrientationClasses.value,
+    ];
+  }
+
   if (isScheduledPending.value) {
     return [
       'bg-n-amber-3 text-n-amber-12 border border-n-amber-6',

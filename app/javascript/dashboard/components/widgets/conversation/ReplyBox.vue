@@ -725,7 +725,6 @@ export default {
     isAValidEvent(selectedKey) {
       return (
         !this.showUserMentions &&
-        !this.showMentions &&
         !this.showCannedMenu &&
         !this.showVariablesMenu &&
         this.isFocused &&
@@ -770,31 +769,30 @@ export default {
       if (this.isReplyButtonDisabled) {
         return;
       }
-      if (!this.showMentions) {
-        const isOnWhatsApp =
-          this.isATwilioWhatsAppChannel ||
-          this.isAWhatsAppCloudChannel ||
-          this.is360DialogWhatsAppChannel;
-        // When users send messages containing both text and attachments on Instagram, Instagram treats them as separate messages.
-        // Although Genius Cloud combines these into a single message, Instagram sends separate echo events for each component.
-        // This can create duplicate messages in Genius Cloud. To prevent this issue, we'll handle text and attachments as separate messages.
-        const isOnInstagram = this.isAnInstagramChannel;
-        if ((isOnWhatsApp || isOnInstagram) && !this.isPrivate) {
-          this.sendMessageAsMultipleMessages(this.message);
-        } else {
-          const messagePayload = this.getMessagePayload(this.message);
-          this.sendMessage(messagePayload);
-        }
-
-        if (!this.isPrivate) {
-          this.clearEmailField();
-        }
-
-        this.clearMessage();
-        this.hideEmojiPicker();
-        this.resetScheduledMessage();
-        this.$emit('update:popOutReplyBox', false);
+      const isOnWhatsApp =
+        this.isATwilioWhatsAppChannel ||
+        this.isAWhatsAppCloudChannel ||
+        this.is360DialogWhatsAppChannel;
+      // When users send messages containing both text and attachments on Instagram, Instagram treats them as separate messages.
+      // Although Genius Cloud combines these into a single message, Instagram sends separate echo events for each component.
+      // This can create duplicate messages in Genius Cloud. To prevent this issue, we'll handle text and attachments as separate messages.
+      const isOnInstagram = this.isAnInstagramChannel;
+      if ((isOnWhatsApp || isOnInstagram) && !this.isPrivate) {
+        this.sendMessageAsMultipleMessages(this.message);
+      } else {
+        const messagePayload = this.getMessagePayload(this.message);
+        this.sendMessage(messagePayload);
       }
+
+      if (!this.isPrivate) {
+        this.clearEmailField();
+      }
+
+      this.clearMessage();
+      this.hideEmojiPicker();
+      this.hideMentions();
+      this.resetScheduledMessage();
+      this.$emit('update:popOutReplyBox', false);
     },
     sendMessageAsMultipleMessages(message) {
       const messages = this.getMultipleMessagesPayload(message);

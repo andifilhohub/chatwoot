@@ -29,6 +29,7 @@ const isEditModalOpen = ref(false);
 const selectedScheduledMessage = ref(null);
 const showFilters = ref(false);
 const expandedMessageId = ref(null);
+const confirmDialog = ref(null);
 
 const filters = reactive({
   search: route.query.search || '',
@@ -70,23 +71,6 @@ const hasActiveFilters = computed(() =>
 const agents = useMapGetter('agents/getAgents');
 const inboxes = useMapGetter('inboxes/getInboxes');
 
-const searchHandler = debounce(() => {
-  pagination.page = 1;
-  updateRouteQuery();
-  fetchMessages();
-}, 300);
-
-const handleSearchInput = value => {
-  filters.search = value;
-  searchHandler();
-};
-
-onMounted(() => {
-  store.dispatch('agents/get');
-  store.dispatch('inboxes/get');
-  fetchMessages();
-});
-
 const buildParams = () => {
   const params = {
     page: pagination.page,
@@ -105,7 +89,7 @@ const buildParams = () => {
   return params;
 };
 
-const updateRouteQuery = () => {
+function updateRouteQuery() {
   const query = {
     page: pagination.page,
     per_page: pagination.perPage,
@@ -121,9 +105,9 @@ const updateRouteQuery = () => {
   if (filters.createdTo) query.created_to = filters.createdTo;
 
   router.replace({ query });
-};
+}
 
-const fetchMessages = async () => {
+async function fetchMessages() {
   isLoading.value = true;
   try {
     const { data } = await ScheduledMessagesAPI.list(buildParams());
@@ -138,7 +122,11 @@ const fetchMessages = async () => {
   } finally {
     isLoading.value = false;
   }
-};
+}
+
+function closeFilters() {
+  showFilters.value = false;
+}
 
 const applyFilters = () => {
   pagination.page = 1;
@@ -174,8 +162,6 @@ const formatTimestamp = timestamp => {
   const formatted = format(date, 'MMM d, yyyy h:mm a');
   return formatted;
 };
-
-const resolveTimezone = () => null;
 
 const formatCreatedAt = timestamp => {
   if (!timestamp) return '—';
@@ -217,54 +203,99 @@ const statusClass = status => {
   return map[status] || 'bg-n-slate-3 text-n-slate-11 border-n-slate-6';
 };
 
+const currentAccountId = computed(() => {
+  const routeAccountId = Number(route.params.accountId);
+  if (Number.isFinite(routeAccountId) && routeAccountId > 0) {
+    return routeAccountId;
+  }
+
+  const mappedAccountId = Number(accountId?.value);
+  if (Number.isFinite(mappedAccountId) && mappedAccountId > 0) {
+    return mappedAccountId;
+  }
+
+  return null;
+});
+
 const conversationLink = message => {
   const conversationDisplayId = message.message?.conversation_id;
+  if (!conversationDisplayId) return '';
+  if (!currentAccountId.value) return '';
   return frontendURL(
-    `accounts/${accountId}/conversations/${conversationDisplayId}`
+    `accounts/${currentAccountId.value}/conversations/${conversationDisplayId}`
   );
 };
 
-const canEdit = status => ['scheduled', 'processing'].includes(status);
+const canManageSchedule = status => status === 'scheduled';
+
+const openConversation = scheduledMessage => {
+  const link = conversationLink(scheduledMessage);
+  if (!link) {
+    useAlert(t('SCHEDULED_MESSAGES.ERRORS.FETCH'));
+    return;
+  }
+  router.push(link);
+};
 
 const handleEdit = scheduledMessage => {
   selectedScheduledMessage.value = scheduledMessage;
   isEditModalOpen.value = true;
 };
 
+function closeEditModal() {
+  isEditModalOpen.value = false;
+  selectedScheduledMessage.value = null;
+}
+
 const handleEditSubmit = async ({ content, scheduledAt, timezone }) => {
   if (!selectedScheduledMessage.value) return;
   try {
-    const { data } = await ScheduledMessagesAPI.update(
-      selectedScheduledMessage.value.id,
-      {
-        content,
-        scheduled_at: scheduledAt,
-        scheduled_timezone: timezone,
-      }
-    );
-    store.dispatch('conversations/updateMessage', data);
+    const current = selectedScheduledMessage.value;
+    const nextContent = content ?? current.message?.content ?? '';
+    const nextScheduledAt =
+      scheduledAt ?? current.scheduled_at_iso ?? current.message?.scheduled_at;
+    const nextTimezone = timezone ?? current.timezone ?? undefined;
+
+    const { data } = await ScheduledMessagesAPI.update(current.id, {
+      content: nextContent,
+      scheduled_at: nextScheduledAt,
+      scheduled_timezone: nextTimezone,
+    });
+    try {
+      store.dispatch('conversations/updateMessage', data);
+    } catch (e) {
+      // Scheduled messages page can work without an active conversation in store.
+    }
     useAlert(t('SCHEDULED_MESSAGES.SUCCESS.UPDATE'));
     closeEditModal();
     fetchMessages();
   } catch (error) {
-    useAlert(t('SCHEDULED_MESSAGES.ERRORS.UPDATE'));
+    useAlert(
+      error?.response?.data?.message || t('SCHEDULED_MESSAGES.ERRORS.UPDATE')
+    );
   }
 };
 
 const handleCancelSchedule = async scheduledMessage => {
   if (!scheduledMessage) return;
-  const confirmed = window.confirm(t('SCHEDULED_MESSAGES.CONFIRM_DELETE'));
+  const confirmed = await confirmDialog.value?.showConfirmation();
   if (!confirmed) return;
 
   try {
     const { data } = await ScheduledMessagesAPI.delete(scheduledMessage.id);
     if (data) {
-      store.dispatch('conversations/updateMessage', data);
+      try {
+        store.dispatch('conversations/updateMessage', data);
+      } catch (e) {
+        // Scheduled messages page can work without an active conversation in store.
+      }
     }
     useAlert(t('SCHEDULED_MESSAGES.SUCCESS.DELETE'));
     fetchMessages();
   } catch (error) {
-    useAlert(t('SCHEDULED_MESSAGES.ERRORS.DELETE'));
+    useAlert(
+      error?.response?.data?.message || t('SCHEDULED_MESSAGES.ERRORS.DELETE')
+    );
   }
 };
 
@@ -276,20 +307,28 @@ const openFilters = () => {
   showFilters.value = true;
 };
 
-const closeFilters = () => {
-  showFilters.value = false;
-};
-
 const toggleCard = id => {
   expandedMessageId.value = expandedMessageId.value === id ? null : id;
 };
 
 const isExpanded = id => expandedMessageId.value === id;
 
-const closeEditModal = () => {
-  isEditModalOpen.value = false;
-  selectedScheduledMessage.value = null;
+const searchHandler = debounce(() => {
+  pagination.page = 1;
+  updateRouteQuery();
+  fetchMessages();
+}, 300);
+
+const handleSearchInput = value => {
+  filters.search = value;
+  searchHandler();
 };
+
+onMounted(() => {
+  store.dispatch('agents/get');
+  store.dispatch('inboxes/get');
+  fetchMessages();
+});
 </script>
 
 <template>
@@ -662,18 +701,17 @@ const closeEditModal = () => {
                         size="sm"
                         variant="link"
                         :label="t('SCHEDULED_MESSAGES.ACTIONS.VIEW')"
-                        :href="conversationLink(scheduledMessage)"
-                        target="_blank"
+                        @click="openConversation(scheduledMessage)"
                       />
                       <NextButton
-                        v-if="canEdit(scheduledMessage.status)"
+                        v-if="canManageSchedule(scheduledMessage.status)"
                         size="sm"
                         variant="link"
                         :label="t('SCHEDULED_MESSAGES.ACTIONS.EDIT')"
                         @click="handleEdit(scheduledMessage)"
                       />
                       <NextButton
-                        v-if="canEdit(scheduledMessage.status)"
+                        v-if="canManageSchedule(scheduledMessage.status)"
                         size="sm"
                         variant="link"
                         :label="t('SCHEDULED_MESSAGES.ACTIONS.DELETE')"
@@ -702,20 +740,18 @@ const closeEditModal = () => {
           slate
           size="sm"
           :disabled="pagination.page === 1"
+          icon="i-lucide-chevron-left"
           @click="goToPage(pagination.page - 1)"
-        >
-          ‹
-        </NextButton>
-        <span> {{ pagination.page }} / {{ totalPages }} </span>
+        />
+        <span>{{ pagination.page }} / {{ totalPages }}</span>
         <NextButton
           faded
           slate
           size="sm"
           :disabled="pagination.page >= totalPages"
+          icon="i-lucide-chevron-right"
           @click="goToPage(pagination.page + 1)"
-        >
-          ›
-        </NextButton>
+        />
       </div>
     </footer>
 
@@ -725,6 +761,13 @@ const closeEditModal = () => {
       :scheduled-message="selectedScheduledMessage"
       @close="closeEditModal"
       @submit="handleEditSubmit"
+    />
+    <woot-confirm-modal
+      ref="confirmDialog"
+      :title="t('SCHEDULED_MESSAGES.CONFIRM_DELETE')"
+      :description="t('SCHEDULED_MESSAGES.ACTIONS.DELETE')"
+      :confirm-label="t('SCHEDULED_MESSAGES.ACTIONS.DELETE')"
+      :cancel-label="t('SCHEDULED_MESSAGES.EDIT_MODAL.CANCEL')"
     />
   </div>
 </template>

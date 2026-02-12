@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useStore } from 'vuex';
 import { useInternalChat } from '../../composables/useInternalChat.js';
@@ -14,13 +14,11 @@ const {
   messages,
   rooms,
   isLoading,
-  loadRooms,
   sendMessage,
   createDirectRoom,
   selectRoom,
-  disconnect,
   currentUser,
-} = useInternalChatData();
+} = useInternalChatData(isInternalChatOpen);
 
 // Estado local do componente
 const messageContainer = ref(null);
@@ -235,20 +233,10 @@ const formatLastSeen = timestamp => {
   return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 };
 
-onMounted(() => {
-  loadRooms();
-});
-
-onUnmounted(() => {
-  disconnect();
-});
-
 watch(isInternalChatOpen, isOpen => {
   if (!isOpen) {
     return;
   }
-
-  loadRooms();
 
   if (selectedChatType.value === 'general') {
     Promise.resolve(selectChatMethod('general')).catch(() => {});

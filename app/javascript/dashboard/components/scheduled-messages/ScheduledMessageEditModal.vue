@@ -57,7 +57,18 @@ watch(
     if (show) {
       initialize();
     }
-  }
+  },
+  { immediate: true }
+);
+
+watch(
+  () => props.scheduledMessage,
+  () => {
+    if (props.show) {
+      initialize();
+    }
+  },
+  { deep: true }
 );
 
 const disablePastDates = date => {

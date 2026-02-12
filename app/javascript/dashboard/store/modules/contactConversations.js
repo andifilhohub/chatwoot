@@ -4,10 +4,33 @@ import ConversationApi from '../../api/conversations';
 import camelcaseKeys from 'camelcase-keys';
 
 export const createMessagePayload = (payload, message) => {
-  const { content, cc_emails, bcc_emails } = message;
+  const {
+    content,
+    cc_emails,
+    bcc_emails,
+    scheduled_at,
+    scheduled_timezone,
+    schedule_info,
+  } = message;
   payload.append('message[content]', content);
   if (cc_emails) payload.append('message[cc_emails]', cc_emails);
   if (bcc_emails) payload.append('message[bcc_emails]', bcc_emails);
+  if (scheduled_at) payload.append('message[scheduled_at]', scheduled_at);
+  if (scheduled_timezone) {
+    payload.append('message[scheduled_timezone]', scheduled_timezone);
+  }
+  if (schedule_info?.scheduled_at) {
+    payload.append(
+      'message[schedule_info][scheduled_at]',
+      schedule_info.scheduled_at
+    );
+  }
+  if (schedule_info?.scheduled_timezone) {
+    payload.append(
+      'message[schedule_info][scheduled_timezone]',
+      schedule_info.scheduled_timezone
+    );
+  }
 };
 
 export const createConversationPayload = ({ params, contactId, files }) => {

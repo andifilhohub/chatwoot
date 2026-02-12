@@ -130,7 +130,7 @@ const props = defineProps({
   senderId: { type: Number, default: null },
   senderType: { type: String, default: null },
   sourceId: { type: String, default: '' }, // eslint-disable-line vue/no-unused-properties
-  scheduleInfo: { type: Object, default: null },
+  scheduleInfo: { type: Object, default: null }, // eslint-disable-line vue/no-unused-properties
 });
 
 const contextMenuPosition = ref({});
@@ -138,6 +138,24 @@ const showBackgroundHighlight = ref(false);
 const showContextMenu = ref(false);
 const { t } = useI18n();
 const route = useRoute();
+
+const hasAttachments = computed(
+  () => Array.isArray(props.attachments) && props.attachments.length > 0
+);
+
+// Some channels may report a transient failure even after accepting media and returning a source_id.
+// Treat those messages as sent to avoid false failed state in the UI.
+const messageStatus = computed(() => {
+  if (
+    props.status === MESSAGE_STATUS.FAILED &&
+    props.sourceId &&
+    hasAttachments.value
+  ) {
+    return MESSAGE_STATUS.SENT;
+  }
+
+  return props.status;
+});
 
 /**
  * Computes the message variant based on props
@@ -157,7 +175,9 @@ const variant = computed(() => {
     return MESSAGE_VARIANTS.EMAIL;
   }
 
-  if (props.status === MESSAGE_STATUS.FAILED) return MESSAGE_VARIANTS.ERROR;
+  if (messageStatus.value === MESSAGE_STATUS.FAILED) {
+    return MESSAGE_VARIANTS.ERROR;
+  }
   if (props.contentAttributes?.isUnsupported)
     return MESSAGE_VARIANTS.UNSUPPORTED;
 
@@ -183,7 +203,7 @@ const isBotOrAgentMessage = computed(() => {
   // if an outgoing message is still processing, then it's definitely a
   // message sent by the current user
   if (
-    props.status === MESSAGE_STATUS.PROGRESS &&
+    messageStatus.value === MESSAGE_STATUS.PROGRESS &&
     props.messageType === MESSAGE_TYPES.OUTGOING
   ) {
     return true;
@@ -255,7 +275,7 @@ const gridTemplate = computed(() => {
 });
 
 const shouldGroupWithNext = computed(() => {
-  if (props.status === MESSAGE_STATUS.FAILED) return false;
+  if (messageStatus.value === MESSAGE_STATUS.FAILED) return false;
 
   return props.groupWithNext;
 });
@@ -334,6 +354,13 @@ const shouldShowContextMenu = computed(() => {
   return !props.contentAttributes?.isUnsupported;
 });
 
+const shouldShowMessageError = computed(() => {
+  return (
+    Boolean(props.contentAttributes?.externalError) &&
+    messageStatus.value === MESSAGE_STATUS.FAILED
+  );
+});
+
 const isBubble = computed(() => {
   return props.messageType !== MESSAGE_TYPES.ACTIVITY;
 });
@@ -358,17 +385,17 @@ const isZaphubChannel = computed(
 
 const contextMenuEnabledOptions = computed(() => {
   const hasText = !!props.content;
-  const hasAttachments = !!(props.attachments && props.attachments.length > 0);
+  const hasMessageAttachments = hasAttachments.value;
 
   const isOutgoing = props.messageType === MESSAGE_TYPES.OUTGOING;
   const isFailedOrProcessing =
-    props.status === MESSAGE_STATUS.FAILED ||
-    props.status === MESSAGE_STATUS.PROGRESS;
+    messageStatus.value === MESSAGE_STATUS.FAILED ||
+    messageStatus.value === MESSAGE_STATUS.PROGRESS;
 
   return {
     copy: hasText,
     delete:
-      (hasText || hasAttachments) &&
+      (hasText || hasMessageAttachments) &&
       !isFailedOrProcessing &&
       !isMessageDeleted.value,
     edit:
@@ -389,14 +416,14 @@ const contextMenuEnabledOptions = computed(() => {
 });
 
 const shouldRenderMessage = computed(() => {
-  const hasAttachments = !!(props.attachments && props.attachments.length > 0);
+  const hasMessageAttachments = hasAttachments.value;
   const isEmailContentType = props.contentType === CONTENT_TYPES.INCOMING_EMAIL;
   const isUnsupported = props.contentAttributes?.isUnsupported;
   const isAnIntegrationMessage =
     props.contentType === CONTENT_TYPES.INTEGRATIONS;
 
   return (
-    hasAttachments ||
+    hasMessageAttachments ||
     props.content ||
     isEmailContentType ||
     isUnsupported ||
@@ -484,6 +511,7 @@ onMounted(setupHighlightTimer);
 
 provideMessageContext({
   ...toRefs(props),
+  status: messageStatus,
   isPrivate: computed(() => props.private),
   variant,
   orientation,
@@ -515,7 +543,7 @@ provideMessageContext({
       :class="[
         gridClass,
         {
-          'gap-y-2': contentAttributes.externalError,
+          'gap-y-2': shouldShowMessageError,
           'w-full': variant === MESSAGE_VARIANTS.EMAIL,
         },
       ]"
@@ -543,7 +571,7 @@ provideMessageContext({
         <Component :is="componentToRender" />
       </div>
       <MessageError
-        v-if="contentAttributes.externalError"
+        v-if="shouldShowMessageError"
         class="[grid-area:meta]"
         :class="flexOrientationClass"
         :error="contentAttributes.externalError"

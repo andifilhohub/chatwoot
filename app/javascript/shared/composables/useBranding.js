@@ -7,9 +7,9 @@ import { useMapGetter } from 'dashboard/composables/store.js';
 export function useBranding() {
   const globalConfig = useMapGetter('globalConfig/get');
   /**
-   * Replaces "Genius Cloud" in text with the installation name from global config
+   * Replaces product name references with the installation name from global config
    * @param {string} text - The text to process
-   * @returns {string} - Text with "Genius Cloud" replaced by installation name
+   * @returns {string} - Text with product name references replaced by installation name
    */
   const replaceInstallationName = text => {
     if (!text) return text;
@@ -17,7 +17,7 @@ export function useBranding() {
     const installationName = globalConfig.value?.installationName;
     if (!installationName) return text;
 
-    return text.replace(/Genius Cloud/g, installationName);
+    return text.replace(/Chatwoot|Genius Cloud/gi, installationName);
   };
 
   return {

@@ -64,8 +64,9 @@ class Whatsapp::IncomingMessageBaseService
   end
 
   def create_contact_messages(message)
-    message['contacts'].each do |contact|
-      create_message(contact)
+    contacts = message[:contacts] || message['contacts'] || []
+    contacts.each do |contact|
+      create_message(contact, source_id: message[:id] || message['id'])
       attach_contact(contact)
       @message.save!
     end
@@ -131,26 +132,30 @@ class Whatsapp::IncomingMessageBaseService
   end
 
   def attach_location
-    location = @processed_params[:messages].first['location']
-    location_name = location['name'] ? "#{location['name']}, #{location['address']}" : ''
+    location = @processed_params[:messages].first[:location] || @processed_params[:messages].first['location']
+    return if location.blank?
+
+    location_name = location[:name] || location['name']
+    location_address = location[:address] || location['address']
+    external_url = location[:url] || location['url']
     @message.attachments.new(
       account_id: @message.account_id,
       file_type: file_content_type(message_type),
-      coordinates_lat: location['latitude'],
-      coordinates_long: location['longitude'],
-      fallback_title: location_name,
-      external_url: location['url']
+      coordinates_lat: location[:latitude] || location['latitude'],
+      coordinates_long: location[:longitude] || location['longitude'],
+      fallback_title: location_name ? "#{location_name}, #{location_address}" : '',
+      external_url: external_url
     )
   end
 
-  def create_message(message)
+  def create_message(message, source_id: nil)
     @message = @conversation.messages.build(
       content: message_content(message),
       account_id: @inbox.account_id,
       inbox_id: @inbox.id,
       message_type: :incoming,
       sender: @contact,
-      source_id: message[:id].to_s,
+      source_id: (source_id || message[:id] || message['id']).to_s,
       in_reply_to_external_id: @in_reply_to_external_id
     )
   end
@@ -159,10 +164,10 @@ class Whatsapp::IncomingMessageBaseService
     phones = contact[:phones]
     phones = [{ phone: 'Phone number is not available' }] if phones.blank?
 
-    name_info = contact['name'] || {}
+    name_info = contact[:name] || contact['name'] || {}
     contact_meta = {
-      firstName: name_info['first_name'],
-      lastName: name_info['last_name']
+      firstName: name_info[:first_name] || name_info['first_name'],
+      lastName: name_info[:last_name] || name_info['last_name']
     }.compact
 
     phones.each do |phone|

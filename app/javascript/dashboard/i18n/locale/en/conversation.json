@@ -228,6 +228,7 @@
         "CLEAR": "Clear schedule",
         "META_PENDING": "Scheduled for {datetime}",
         "META_SENT": "Sent on {datetime}",
+        "META_CANCELLED": "Cancelled on {datetime}",
         "MODAL": {
           "TITLE": "Schedule message",
           "DESCRIPTION": "Choose when this message should be sent.",

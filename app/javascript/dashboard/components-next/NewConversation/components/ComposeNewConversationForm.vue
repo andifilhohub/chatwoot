@@ -1,5 +1,6 @@
 <script setup>
 import { reactive, ref, computed } from 'vue';
+import { format } from 'date-fns';
 import { useVuelidate } from '@vuelidate/core';
 import { required, requiredIf } from '@vuelidate/validators';
 import { INBOX_TYPES } from 'dashboard/helper/inbox';
@@ -21,6 +22,7 @@ import MessageEditor from './MessageEditor.vue';
 import ActionButtons from './ActionButtons.vue';
 import InboxEmptyState from './InboxEmptyState.vue';
 import AttachmentPreviews from './AttachmentPreviews.vue';
+import ScheduleMessageModal from 'dashboard/components/widgets/conversation/ScheduleMessageModal.vue';
 
 const props = defineProps({
   contacts: { type: Array, default: () => [] },
@@ -51,8 +53,23 @@ const showContactsDropdown = ref(false);
 const showInboxesDropdown = ref(false);
 const showCcEmailsDropdown = ref(false);
 const showBccEmailsDropdown = ref(false);
+const showScheduleMessageModal = ref(false);
+const defaultScheduleTimezone =
+  Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+const scheduledMessageAt = ref(null);
+const scheduledMessageTimezone = ref(defaultScheduleTimezone);
 
 const isCreating = computed(() => props.contactConversationsUiFlags.isCreating);
+const hasScheduledMessage = computed(() => !!scheduledMessageAt.value);
+const scheduleButtonLabel = computed(() => {
+  if (!scheduledMessageAt.value) return '';
+  try {
+    const date = new Date(scheduledMessageAt.value);
+    return `${format(date, 'MMM d, yyyy h:mm a')} (${scheduledMessageTimezone.value})`;
+  } catch (error) {
+    return '';
+  }
+});
 
 const state = reactive({
   message: '',
@@ -121,6 +138,14 @@ const newMessagePayload = () => {
     currentUser: props.currentUser,
     attachedFiles,
     directUploadsEnabled: props.isDirectUploadsEnabled,
+    scheduledAt: scheduledMessageAt.value,
+    scheduledTimezone: scheduledMessageTimezone.value,
+    scheduleInfo: hasScheduledMessage.value
+      ? {
+          scheduledAt: scheduledMessageAt.value,
+          scheduledTimezone: scheduledMessageTimezone.value,
+        }
+      : undefined,
   });
 };
 
@@ -268,7 +293,30 @@ const clearForm = () => {
     bccEmails: '',
     attachedFiles: [],
   });
+  scheduledMessageAt.value = null;
+  scheduledMessageTimezone.value = defaultScheduleTimezone;
+  showScheduleMessageModal.value = false;
   v$.value.$reset();
+};
+
+const openScheduleModal = () => {
+  showScheduleMessageModal.value = true;
+};
+
+const closeScheduleModal = () => {
+  showScheduleMessageModal.value = false;
+};
+
+const handleScheduleConfirm = ({ scheduledAt, timezone }) => {
+  scheduledMessageAt.value = scheduledAt;
+  scheduledMessageTimezone.value = timezone || defaultScheduleTimezone;
+  showScheduleMessageModal.value = false;
+};
+
+const clearScheduledMessage = () => {
+  scheduledMessageAt.value = null;
+  scheduledMessageTimezone.value = defaultScheduleTimezone;
+  showScheduleMessageModal.value = false;
 };
 
 const handleSendMessage = async () => {
@@ -401,6 +449,8 @@ const shouldShowMessageEditor = computed(() => {
       :disable-send-button="isCreating"
       :has-selected-inbox="!!targetInbox"
       :inbox-id="targetInbox?.id"
+      :is-schedule-active="hasScheduledMessage"
+      :schedule-label="scheduleButtonLabel"
       :has-no-inbox="showNoInboxAlert"
       :is-dropdown-active="isAnyDropdownActive"
       :message-signature="messageSignature"
@@ -408,10 +458,20 @@ const shouldShowMessageEditor = computed(() => {
       @add-signature="handleAddSignature"
       @remove-signature="handleRemoveSignature"
       @attach-file="handleAttachFile"
+      @open-schedule="openScheduleModal"
+      @clear-schedule="clearScheduledMessage"
       @discard="$emit('discard')"
       @send-message="handleSendMessage"
       @send-whatsapp-message="handleSendWhatsappMessage"
       @send-twilio-message="handleSendTwilioMessage"
+    />
+    <ScheduleMessageModal
+      :show="showScheduleMessageModal"
+      :scheduled-at="scheduledMessageAt"
+      :timezone="scheduledMessageTimezone"
+      @close="closeScheduleModal"
+      @confirm="handleScheduleConfirm"
+      @clear="clearScheduledMessage"
     />
   </div>
 </template>

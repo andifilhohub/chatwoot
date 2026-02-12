@@ -114,5 +114,78 @@ describe Whatsapp::IncomingMessageWhatsappCloudService do
         expect(whatsapp_channel.inbox.messages.count).to eq(0)
       end
     end
+
+    context 'when valid location message params' do
+      it 'creates location attachment for whatsapp cloud messages' do
+        location_params = {
+          phone_number: whatsapp_channel.phone_number,
+          object: 'whatsapp_business_account',
+          entry: [{
+            changes: [{
+              value: {
+                contacts: [{ profile: { name: 'Sojan Jose' }, wa_id: '2423423243' }],
+                messages: [{
+                  id: 'wamid.location.test',
+                  from: '2423423243',
+                  location: {
+                    latitude: 37.7893768,
+                    longitude: -122.3895553,
+                    name: 'Bay Bridge',
+                    address: 'San Francisco, CA, USA',
+                    url: 'http://location_url.test'
+                  },
+                  timestamp: '1664799904',
+                  type: 'location'
+                }]
+              }
+            }]
+          }]
+        }.with_indifferent_access
+
+        described_class.new(inbox: whatsapp_channel.inbox, params: location_params).perform
+
+        expect(whatsapp_channel.inbox.messages.count).to eq(1)
+        location_attachment = whatsapp_channel.inbox.messages.first.attachments.first
+        expect(location_attachment.file_type).to eq('location')
+        expect(location_attachment.fallback_title).to eq('Bay Bridge, San Francisco, CA, USA')
+      end
+    end
+
+    context 'when valid contact share message params' do
+      it 'creates contact attachment for whatsapp cloud messages' do
+        contact_params = {
+          phone_number: whatsapp_channel.phone_number,
+          object: 'whatsapp_business_account',
+          entry: [{
+            changes: [{
+              value: {
+                contacts: [{ profile: { name: 'Sojan Jose' }, wa_id: '2423423243' }],
+                messages: [{
+                  id: 'wamid.contact.test',
+                  from: '2423423243',
+                  type: 'contacts',
+                  contacts: [{
+                    name: {
+                      formatted_name: 'John Doe',
+                      first_name: 'John',
+                      last_name: 'Doe'
+                    },
+                    phones: [{ phone: '+14155552671' }]
+                  }]
+                }]
+              }
+            }]
+          }]
+        }.with_indifferent_access
+
+        described_class.new(inbox: whatsapp_channel.inbox, params: contact_params).perform
+
+        expect(whatsapp_channel.inbox.messages.count).to eq(1)
+        expect(whatsapp_channel.inbox.messages.first.source_id).to eq('wamid.contact.test')
+        contact_attachment = whatsapp_channel.inbox.messages.first.attachments.first
+        expect(contact_attachment.file_type).to eq('contact')
+        expect(contact_attachment.fallback_title).to eq('+14155552671')
+      end
+    end
   end
 end

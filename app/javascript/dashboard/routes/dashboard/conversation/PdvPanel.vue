@@ -29,6 +29,10 @@ const currentAccountId = useMapGetter('getCurrentAccountId');
 const isInovaFarmaEnabled = computed(() => {
   return store.getters['accounts/isInovaFarmaEnabled'](currentAccountId.value);
 });
+const isPdvEnabled = computed(() => {
+  const pdvFlag = window.globalConfig?.ENABLE_PDV;
+  return pdvFlag !== false && pdvFlag !== 'false';
+});
 
 // Sistema de carrinho por conversa
 const CART_STORAGE_KEY = 'pdv_carts_by_conversation';
@@ -250,7 +254,7 @@ const cartPanelStyle = computed(() => ({
     <!-- Conteúdo com blur quando desabilitado -->
     <div
       class="flex-1 overflow-hidden relative flex flex-col"
-      :class="{ 'blur-sm pointer-events-none': !isInovaFarmaEnabled }"
+      :class="{ 'blur-sm pointer-events-none': !isPdvEnabled || !isInovaFarmaEnabled }"
     >
       <!-- Lista de Produtos (ocupa tudo) -->
       <div class="flex-1 overflow-hidden flex flex-col">
@@ -365,9 +369,40 @@ const cartPanelStyle = computed(() => ({
       </transition>
     </div>
 
+    <!-- Tela de bloqueio quando PDV está desativado -->
+    <div
+      v-if="!isPdvEnabled"
+      class="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm z-10"
+    >
+      <div class="max-w-md mx-4 text-center">
+        <div class="mb-6 flex justify-center">
+          <img
+            :src="InovafarmaLogo"
+            alt="Inovafarma"
+            class="h-24 w-auto opacity-50"
+          />
+        </div>
+        <h2
+          class="text-2xl font-bold mb-4 text-slate-900 dark:text-slate-100"
+        >
+          {{ $t('PDV.BLOCKED.TITLE') }}
+        </h2>
+        <p class="text-base text-slate-600 dark:text-slate-400 mb-6">
+          {{ $t('PDV.BLOCKED.DESCRIPTION') }}
+        </p>
+        <div
+          class="bg-woot-50 dark:bg-woot-900/20 border-2 border-woot-200 dark:border-woot-800 rounded-lg p-4"
+        >
+          <p class="text-sm text-slate-700 dark:text-slate-300">
+            {{ $t('PDV.BLOCKED.SUBTEXT') }}
+          </p>
+        </div>
+      </div>
+    </div>
+
     <!-- Tela de bloqueio quando Inova Farma não está ativado -->
     <div
-      v-if="!isInovaFarmaEnabled"
+      v-else-if="!isInovaFarmaEnabled"
       class="absolute inset-0 flex items-center justify-center bg-white/80 dark:bg-slate-900/80 backdrop-blur-sm z-10"
     >
       <div class="max-w-md mx-4 text-center">

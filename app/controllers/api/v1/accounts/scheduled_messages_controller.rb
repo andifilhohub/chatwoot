@@ -17,9 +17,7 @@ class Api::V1::Accounts::ScheduledMessagesController < Api::V1::Accounts::BaseCo
   end
 
   def update
-    unless @message.scheduled?
-      return render_error({ message: I18n.t('scheduled_messages.errors.not_editable') }, :unprocessable_entity)
-    end
+    return render_error({ message: I18n.t('scheduled_messages.errors.not_editable') }, :unprocessable_entity) unless schedulable_for_management?
 
     assign_schedule_attributes!
     ActiveRecord::Base.transaction do
@@ -31,13 +29,10 @@ class Api::V1::Accounts::ScheduledMessagesController < Api::V1::Accounts::BaseCo
   end
 
   def destroy
-    schedule_record = @schedule_record
-    unless schedule_record&.scheduled? || schedule_record.nil?
-      return render_error({ message: I18n.t('scheduled_messages.errors.not_cancellable') }, :unprocessable_entity)
-    end
+    return render_error({ message: I18n.t('scheduled_messages.errors.not_cancellable') }, :unprocessable_entity) unless schedulable_for_management?
 
     ActiveRecord::Base.transaction do
-      cancel_schedule!(schedule_record)
+      cancel_schedule!(@schedule_record)
       mark_message_cancelled!
     end
 
@@ -76,18 +71,17 @@ class Api::V1::Accounts::ScheduledMessagesController < Api::V1::Accounts::BaseCo
     scope = filter_by_contact(scope)
     scope = filter_by_search(scope)
     scope = filter_by_date_range(scope, 'messages.scheduled_at', params[:scheduled_from], params[:scheduled_to])
-    scope = filter_message_date_range(scope)
-    scope
+    filter_message_date_range(scope)
   end
 
   def filter_by_contact(scope)
-    return scope unless params[:contact_id].present?
+    return scope if params[:contact_id].blank?
 
     scope.left_outer_joins(:conversation).where(conversations: { contact_id: params[:contact_id] })
   end
 
   def filter_by_search(scope)
-    return scope unless params[:q].present?
+    return scope if params[:q].blank?
 
     scope.where('messages.content ILIKE ?', "%#{params[:q]}%")
   end
@@ -116,24 +110,31 @@ class Api::V1::Accounts::ScheduledMessagesController < Api::V1::Accounts::BaseCo
   end
 
   def find_message
-    @message = Current.account.messages.scheduled_status.find(params[:id])
+    @message = Current.account.messages.find(params[:id])
     @schedule_record = @message.scheduled_message_job
+  end
+
+  def schedulable_for_management?
+    return false if @message.sent?
+    return false if @message.scheduled_at.blank?
+
+    @schedule_record&.scheduled?
   end
 
   def assign_schedule_attributes!
     schedule_params = permitted_schedule_params
     @message.assign_attributes(message_update_params)
 
-    if schedule_params[:scheduled_at].present?
-      @message.scheduled_at = schedule_params[:scheduled_at]
-      info = @message.schedule_info.is_a?(Hash) ? @message.schedule_info.deep_dup : {}
-      info['scheduled_at'] = @message.scheduled_at.iso8601
-      info['scheduled_timezone'] = schedule_params[:scheduled_timezone] if schedule_params[:scheduled_timezone].present?
-      info['scheduled_by_id'] = Current.user&.id if Current.user.present?
-      info['scheduled_by_name'] = Current.user.name if Current.user.respond_to?(:name)
-      info['scheduled_updated_at'] = Time.current.iso8601
-      @message.schedule_info = info
-    end
+    return if schedule_params[:scheduled_at].blank?
+
+    @message.scheduled_at = schedule_params[:scheduled_at]
+    info = @message.schedule_info.is_a?(Hash) ? @message.schedule_info.deep_dup : {}
+    info['scheduled_at'] = @message.scheduled_at.iso8601
+    info['scheduled_timezone'] = schedule_params[:scheduled_timezone] if schedule_params[:scheduled_timezone].present?
+    info['scheduled_by_id'] = Current.user&.id if Current.user.present?
+    info['scheduled_by_name'] = Current.user.name if Current.user.respond_to?(:name)
+    info['scheduled_updated_at'] = Time.current.iso8601
+    @message.schedule_info = info
   end
 
   def reschedule_delivery!
@@ -155,7 +156,7 @@ class Api::V1::Accounts::ScheduledMessagesController < Api::V1::Accounts::BaseCo
       scheduled_at: @message.scheduled_at,
       timezone: timezone,
       metadata: metadata
-    ).cancel!(I18n.t('scheduled_messages.status.cancelled_by_agent'))
+    ).cancel!(reason: I18n.t('scheduled_messages.status.cancelled_by_agent'))
   end
 
   def mark_message_cancelled!

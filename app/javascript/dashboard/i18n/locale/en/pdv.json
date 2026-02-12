@@ -69,6 +69,11 @@
     "SEND_QUOTE": "Send Quote",
     "FINALIZE_SALE": "Finalize Sale",
     "CLEAR_CART": "Clear Cart",
+    "BLOCKED": {
+      "TITLE": "PDV Coming Soon",
+      "DESCRIPTION": "We're finishing the PDV integration and this feature will be available shortly.",
+      "SUBTEXT": "Please contact support to learn more."
+    },
     "INTEGRATION_NOT_ENABLED": {
       "TITLE": "Inova Farma Integration Not Active",
       "DESCRIPTION": "Contact our support team to enable the Inova Farma integration and start registering sales directly through Genius Cloud.",

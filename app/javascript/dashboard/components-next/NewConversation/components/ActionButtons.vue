@@ -24,6 +24,8 @@ const props = defineProps({
   isLoading: { type: Boolean, default: false },
   disableSendButton: { type: Boolean, default: false },
   hasSelectedInbox: { type: Boolean, default: false },
+  isScheduleActive: { type: Boolean, default: false },
+  scheduleLabel: { type: String, default: '' },
   hasNoInbox: { type: Boolean, default: false },
   isDropdownActive: { type: Boolean, default: false },
   messageSignature: { type: String, default: '' },
@@ -39,6 +41,8 @@ const emit = defineEmits([
   'addSignature',
   'removeSignature',
   'attachFile',
+  'openSchedule',
+  'clearSchedule',
 ]);
 
 const { t } = useI18n();
@@ -137,6 +141,14 @@ const sendButtonLabel = computed(() => {
   });
 });
 
+const scheduleTooltip = computed(() =>
+  t('CONVERSATION.REPLYBOX.SCHEDULE.BUTTON')
+);
+
+const clearScheduleTooltip = computed(() =>
+  t('CONVERSATION.REPLYBOX.SCHEDULE.CLEAR')
+);
+
 const keyboardEvents = {
   Enter: {
     action: () => {
@@ -199,7 +211,7 @@ useKeyboardEvents(keyboardEvents);
         />
       </div>
       <FileUpload
-        v-if="isEmailOrWebWidgetInbox"
+        v-if="isRegularMessageMode"
         ref="uploadAttachment"
         input-id="composeNewConversationAttachment"
         :size="4096 * 4096"
@@ -214,19 +226,42 @@ useKeyboardEvents(keyboardEvents);
         @input-file="onFileUpload"
       >
         <Button
-          icon="i-lucide-plus"
+          icon="i-ph-paperclip"
           color="slate"
           size="sm"
           class="!w-10 relative"
+          :disabled="hasNoInbox"
         />
       </FileUpload>
       <Button
-        v-if="hasSelectedInbox && isRegularMessageMode"
+        v-if="isRegularMessageMode"
         icon="i-lucide-signature"
         color="slate"
         size="sm"
         class="!w-10"
+        :disabled="!hasSelectedInbox || hasNoInbox"
         @click="toggleMessageSignature"
+      />
+      <Button
+        v-if="isRegularMessageMode"
+        v-tooltip.top-end="scheduleTooltip"
+        icon="i-ph-calendar"
+        :color="isScheduleActive ? 'amber' : 'slate'"
+        size="sm"
+        :variant="isScheduleActive ? undefined : 'faded'"
+        :class="scheduleLabel ? '!max-w-[200px]' : '!w-10'"
+        :label="scheduleLabel"
+        @click="emit('openSchedule')"
+      />
+      <Button
+        v-if="isScheduleActive && isRegularMessageMode"
+        v-tooltip.top-end="clearScheduleTooltip"
+        icon="i-ph-x-circle"
+        color="slate"
+        size="sm"
+        variant="faded"
+        class="!w-10"
+        @click="emit('clearSchedule')"
       />
     </div>
 

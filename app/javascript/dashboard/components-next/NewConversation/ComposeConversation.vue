@@ -173,10 +173,16 @@ const createConversation = async ({ payload, isFromWhatsApp }) => {
     useAlert(t('COMPOSE_NEW_CONVERSATION.FORM.SUCCESS_MESSAGE'), action);
     return true; // Return success
   } catch (error) {
+    const backendMessage =
+      error?.response?.data?.error ||
+      error?.response?.data?.message ||
+      error?.message;
+
     useAlert(
-      error instanceof ExceptionWithMessage
-        ? error.data
-        : t('COMPOSE_NEW_CONVERSATION.FORM.ERROR_MESSAGE')
+      backendMessage ||
+        (error instanceof ExceptionWithMessage
+          ? error.data
+          : t('COMPOSE_NEW_CONVERSATION.FORM.ERROR_MESSAGE'))
     );
     return false; // Return failure
   }
@@ -209,6 +215,7 @@ watch(
 
 const handleClickOutside = () => {
   if (!showComposeNewConversation.value) return;
+  if (document.querySelector('.modal-mask')) return;
 
   showComposeNewConversation.value = false;
   emit('close');
@@ -240,7 +247,16 @@ useKeyboardEvents(keyboardEvents);
       handleClickOutside,
       // Fixed and edge case https://github.com/chatwoot/chatwoot/issues/10785
       // This will prevent closing the compose conversation modal when the editor Create link popup is open
-      { ignore: ['div.ProseMirror-prompt'] },
+      // Also ignore nested modal/date-picker overlays used by schedule message flow.
+      {
+        ignore: [
+          'div.ProseMirror-prompt',
+          'div.modal-mask',
+          'div.modal-container',
+          '.mx-datepicker-popup',
+          '.mx-datepicker-main',
+        ],
+      },
     ]"
     class="relative"
     :class="{

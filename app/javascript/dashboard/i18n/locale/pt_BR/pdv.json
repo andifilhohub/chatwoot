@@ -67,6 +67,11 @@
     "SEND_QUOTE": "Enviar Orçamento",
     "FINALIZE_SALE": "Finalizar Venda",
     "CLEAR_CART": "Limpar Carrinho",
+    "BLOCKED": {
+      "TITLE": "PDV em breve",
+      "DESCRIPTION": "Estamos finalizando a integração do PDV e esse recurso estará disponível em breve.",
+      "SUBTEXT": "Entre em contato com o suporte para saber mais."
+    },
     "INTEGRATION_NOT_ENABLED": {
       "TITLE": "Integração Inova Farma não ativa",
       "DESCRIPTION": "Entre em contato com o suporte para ativar a integração Inova Farma e começar a registrar vendas direto no Genius Cloud.",

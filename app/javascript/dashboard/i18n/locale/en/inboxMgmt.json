@@ -964,7 +964,7 @@
         "AGENT_MESSAGE": "Hello"
       },
       "BRANDING_TEXT": "Powered by Genius Cloud",
-      "SCRIPT_SETTINGS": "\n      window.chatwootSettings = {options};"
+      "SCRIPT_SETTINGS": "\n      window.geniusCloudSettings = {options};"
     },
     "EMAIL_PROVIDERS": {
       "MICROSOFT": {
