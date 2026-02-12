@@ -15,7 +15,7 @@ class PublicController < ActionController::Base
 
     render json: {
       error: "Domain: #{domain} is not registered with us. \
-      Please send us an email at suporte@geniuscloud.hybware.com.br with the custom domain name and account API key"
+      Please send us an email at suporte@geniuscloud..com.br with the custom domain name and account API key"
     }, status: :unauthorized and return
   end
 end

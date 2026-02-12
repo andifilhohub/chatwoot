@@ -5,7 +5,7 @@ class ConversationReplyMailer < ApplicationMailer
 
   include ConversationReplyMailerHelper
   include ReferencesHeaderBuilder
-  default from: ENV.fetch('MAILER_SENDER_EMAIL', 'Genius Cloud <suporte@geniuscloud.hybware.com.br>')
+  default from: ENV.fetch('MAILER_SENDER_EMAIL', 'Genius Cloud <suporte@geniuscloud..com.br>')
   layout :choose_layout
 
   def reply_with_summary(conversation, last_queued_id)

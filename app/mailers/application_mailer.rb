@@ -1,7 +1,7 @@
 class ApplicationMailer < ActionMailer::Base
   include ActionView::Helpers::SanitizeHelper
 
-  default from: ENV.fetch('MAILER_SENDER_EMAIL', 'Genius Cloud <suporte@geniuscloud.hybware.com.br>')
+  default from: ENV.fetch('MAILER_SENDER_EMAIL', 'Genius Cloud <suporte@geniuscloud..com.br>')
   before_action { ensure_current_account(params.try(:[], :account)) }
   around_action :switch_locale
   layout 'mailer/base'
